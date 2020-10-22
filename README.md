@@ -1,2 +1,4 @@
 # Information-Systems-Project
-Project repository for the subject Software Development For Information Systems @ di.uoa.gr
+### Contributors
+- [Αλέξιος Σπηλιωτόπουλος](https://github.com/aspil) 1115201700147
+- [Φανούριος-Στυλιανός Ψαθόπουλος]() 1115201400320
