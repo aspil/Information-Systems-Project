@@ -7,10 +7,10 @@
 #include "../include/map.h"
 #include "../include/clique.h"
 #include "../include/util.h"
-
 int main() {
 	int size = 30000;
-	struct hash_map *map = map_init(size, hash_str, (int (*)(void*, void*))strcmp, NULL, free);
+	//(int (*)(void*, void*))strcmp
+	struct hash_map *map = map_init(size, hash_str, NULL, NULL, free);
 	
 	char *k = "hello";
 	struct clique *c = malloc(sizeof(struct clique));
@@ -84,6 +84,6 @@ int main() {
 
 	/* Free the allocated memory of the hash table */
 	map_clear(map);
-	
+
 	return 0;
 }
