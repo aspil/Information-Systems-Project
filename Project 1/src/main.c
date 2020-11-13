@@ -7,18 +7,31 @@
 #include "../include/map.h"
 #include "../include/clique.h"
 #include "../include/util.h"
-int main() {
-	int size = 30000;
+
+
+int main(int argc, char *argv[]) {
+	int size = pick_the_buckets(argc,argv);
+
+	printf("The size is %d \n",size );
 	//(int (*)(void*, void*))strcmp
-	struct hash_map *map = map_init(size, hash_str, NULL, NULL, free);
+	struct hash_map *map = map_init(size, hash_str, NULL, NULL, free); 
 	
-	char *k = "hello";
+	/*char *k = "hello";
 	struct clique *c = malloc(sizeof(struct clique));
 	c->size = 0;
 	c->first_product = NULL;
-	c->last_product = NULL;
-	
-	map_insert(map, k, c);
+	c->last_product = NULL;*/
+	//printf("To website einai: %s",map->array[1]->value->first_product->website);
+	int variable=read_data_X(map,size,argv[1]);
+
+	//read data Y 
+	dataset_y(map,argv[2]);
+
+	print_results(map);
+	//struct clique *ptr=(struct clique *)map->array[1]->value;
+	//printf("To id einai: %d \n",ptr->first_product->id);
+	//printf("VARIABLE IS %d\n", variable);
+	/*map_insert(map, k, c);
 	
 	k = "hello2";
 	c = malloc(sizeof(struct clique));
@@ -26,7 +39,7 @@ int main() {
 	c->first_product = NULL;
 	c->last_product = NULL;
 	
-	map_insert(map, k, c);
+	map_insert(map, k, c); */
 	/*--------------------------------------------------------*/
 
 	// struct dirent *pDirent,*iDirent;
@@ -87,3 +100,4 @@ int main() {
 
 	return 0;
 }
+
