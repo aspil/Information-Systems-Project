@@ -8,7 +8,13 @@
  */
 struct product_values {
 	char *name;
-	char *value;
+	char **value;
+};
+
+struct spec_list
+{
+	struct product_values spec;
+	struct spec_list *next;
 };
 /*
  * Struct: product
@@ -19,8 +25,10 @@ struct product_values {
 struct product {
 	int  	   id;
 	char *website;
-	// struct list values;	  /* List of struct product_values */
+	struct spec_list *next_spec;	  /* List of struct product_values */
+	struct spec_list *last_spec;
 	struct product *next; /* Pseudo-list of products */
+	struct clique *clique;
 };
 
 struct product* create_product(int id, const char *website);
@@ -32,4 +40,12 @@ struct clique {
 	struct product *last_product;
 };
 
-void merge_cliques(struct clique *c1, struct clique *c2);
+void merge_cliques(struct clique *c1, struct clique *c2) ;
+
+//void merge_cliques(struct clique *c1, struct clique *c2);
+
+struct clique * create_new();
+
+void product_init(struct clique *ptr,int id, char *website);
+
+void push_specs(struct clique *ptr,char * spec , char **value);

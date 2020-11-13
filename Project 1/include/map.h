@@ -35,3 +35,5 @@ void map_clear(struct hash_map *map);
 
 unsigned int hash_int(void *key);
 unsigned int hash_str(void *key);
+
+int search_and_change_(char *first_id,char *second_id,struct hash_map *map);
