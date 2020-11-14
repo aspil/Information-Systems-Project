@@ -2,6 +2,7 @@
 #include "../include/util.h"
 #include "../include/map.h"
 #include "../include/clique.h"
+#include "../include/dataset_parsing.h"
 
 void pick_the_buckets1(void)
 {
@@ -65,30 +66,30 @@ void pick_the_buckets3(void)
 
 }
 
-void read_data_X1(void)
+void read_data_files1(void)
 {
     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
     char *argv="/random/path"; 
 
-    int variable=read_data_X(map,10,argv);
+    int variable=read_data_files(map,10,argv);
 
     TEST_ASSERT(variable == -1); //-1 for random paths 
 
 
 }
 
-void read_data_X2(void)
+void read_data_files2(void)
 {
     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
-    char *argv="/home/fanmfh/Desktop/examples/Project_1/tests/read_data_x"; 
+    char *argv="/home/fanmfh/Desktop/examples/Project_1/tests/read_data_files"; 
 
     char *key="buy.net//5411";
 
     unsigned int pos = map->hash(key) % map->size;
 
-    int variable=read_data_X(map,10,argv);
+    int variable=read_data_files(map,10,argv);
 
     //printf("Variable is %d and position is %d \n",variable,pos);
 
@@ -108,13 +109,13 @@ void passing_clique(void)
 {
     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
-    char *argv="/home/fanmfh/Desktop/examples/Project_1/tests/read_data_x"; 
+    char *argv="/home/fanmfh/Desktop/examples/Project_1/tests/read_data_files"; 
 
     char *key="buy.net//5411";
 
     unsigned int pos = map->hash(key) % map->size;
 
-    int variable=read_data_X(map,10,argv);
+    int variable=read_data_files(map,10,argv);
 
     TEST_ASSERT(variable == 1); //1 for executing correct path
 
@@ -158,7 +159,7 @@ void passing_clique(void)
 
 }
 
-void dataset_y_1(void)
+void read_relations_1(void)
 {
     char *x="./tests/example";
 
@@ -166,9 +167,9 @@ void dataset_y_1(void)
 
     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
-    int variable=read_data_X(map,10,x);
+    int variable=read_data_files(map,10,x);
 
-    dataset_y(map,y);
+    read_relations(map,y);
 
     print_results(map);
 
@@ -180,9 +181,9 @@ TEST_LIST = {
    { "example1", pick_the_buckets1 },
    { "example2", pick_the_buckets2 },
    { "example3", pick_the_buckets3 },
-   { "example4", read_data_X1 },
-   { "example5", read_data_X2 },
+   { "example4", read_data_files1 },
+   { "example5", read_data_files2 },
    { "example6", passing_clique },
-   { "example7", dataset_y_1 },
+   { "example7", read_relations_1 },
    { NULL, NULL }     /* zeroed record marking the end of the list */
 };
