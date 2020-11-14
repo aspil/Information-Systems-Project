@@ -37,3 +37,5 @@ int map_find(truct hash_map *map, void *key, void *value);
 
 unsigned int hash_int(void *key);
 unsigned int hash_str(void *key);
+
+int search_and_change_(char *first_id,char *second_id,struct hash_map *map);
