@@ -18,4 +18,6 @@ void list_append(struct list *l, void *item);
 
 void list_clear(struct list *l);
 
+int list_get_size(struct list *l);
+
 void list_print_products(struct list *l);

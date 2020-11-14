@@ -7,26 +7,35 @@
 #include "../include/map.h"
 #include "../include/clique.h"
 #include "../include/util.h"
+#include "../include/list.h"
 int main() {
-	int size = 30000;
+	// int size = 30000;
 	//(int (*)(void*, void*))strcmp
-	struct hash_map *map = map_init(size, hash_str, NULL, NULL, free);
+	struct list *l = list_create();
+	for (int i = 0; i < 10; ++i) {
+		struct product *p = create_product(i+1, "dummy website");
+		list_append(l, p);
+	}
+	list_print_products(l);
+	list_clear(l);
+	// struct hash_map *map = map_init(size, hash_str, NULL, NULL, free);
 	
-	char *k = "hello";
-	struct clique *c = malloc(sizeof(struct clique));
-	c->size = 0;
-	c->first_product = NULL;
-	c->last_product = NULL;
+	// char *k = "hello";
+	// struct clique *c = malloc(sizeof(struct clique));
+	// c->size = 0;
+	// c->first_product = NULL;
+	// c->last_product = NULL;
 	
-	map_insert(map, k, c);
+	// map_insert(map, k, c);
 	
-	k = "hello2";
-	c = malloc(sizeof(struct clique));
-	c->size = 0;
-	c->first_product = NULL;
-	c->last_product = NULL;
+	// k = "hello2";
+	// c = malloc(sizeof(struct clique));
+	// c->size = 0;
+	// c->first_product = NULL;
+	// c->last_product = NULL;
 	
-	map_insert(map, k, c);
+	// map_insert(map, k, c);
+	// map_clear(map);
 	/*--------------------------------------------------------*/
 
 	// struct dirent *pDirent,*iDirent;
@@ -83,7 +92,7 @@ int main() {
 	// map_insert(map, key2, c);
 
 	/* Free the allocated memory of the hash table */
-	map_clear(map);
+	
 
 	return 0;
 }

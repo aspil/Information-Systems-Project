@@ -33,5 +33,7 @@ void map_insert(struct hash_map *map, void *key, void *value);
 
 void map_clear(struct hash_map *map);
 
+int map_find(truct hash_map *map, void *key, void *value);
+
 unsigned int hash_int(void *key);
 unsigned int hash_str(void *key);

@@ -1,5 +1,6 @@
 #include "../include/clique.h"
-
+#include <stdlib.h>
+#include <string.h>
 
 struct product* create_product(int id, const char *website) {
 	struct product *p = malloc(sizeof(struct product));
@@ -18,7 +19,7 @@ void merge_cliques(struct clique *c1, struct clique *c2) {
 	c2->first_product = c1->first_product;
 	/* Update their sizes */
 	c1->size += c2->size;
-	c2->size = c1->size
+	c2->size = c1->size;
 	
-	return
+	return;
 }
