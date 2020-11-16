@@ -1,12 +1,10 @@
 #pragma once
-typedef unsigned int (*HashFunction) (void*);
-typedef int (*CompareFunction) (void*, void*);
-typedef void (*DeleteKeyFunction) (void*);
-typedef void (*DeleteValueFunction) (void*);
+#include "types.h"
 
 struct map_node {
 	void *key;
 	void *value;
+	int deleted;
 	struct map_node *next;
 };
 
@@ -31,11 +29,13 @@ struct hash_map* map_init(
 
 void map_insert(struct hash_map *map, void *key, void *value);
 
-void map_clear(struct hash_map *map);
+void map_delete(struct hash_map *map);
 
-int map_find(truct hash_map *map, void *key, void *value);
+int map_find(struct hash_map *map, void *key, void **value);
 
 unsigned int hash_int(void *key);
 unsigned int hash_str(void *key);
 
-int search_and_change_(char *first_id,char *second_id,struct hash_map *map);
+int search_and_change(char *first_id,char *second_id,struct hash_map *map);
+
+void map_print(struct hash_map *map);
