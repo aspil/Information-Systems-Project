@@ -30,10 +30,11 @@ void get_line_without_end_line(char *str)
 }
 
 int count_json_files(char *path) {
-	int count = 0;
 	struct dirent *direntPtr;
-	char *subdir;
 	DIR *dir = opendir(path);
+	int count = 0;
+	char *subdir;
+	
 	if (dir  ==  NULL) {
 		perror("count_json_files: ");
 		return -1;
@@ -43,11 +44,13 @@ int count_json_files(char *path) {
 			/* Check if the pointer is a directory, and visit recursively */
 			if (direntPtr->d_type  ==  DT_DIR) {
 				subdir = calloc(strlen(path) + 2 + strlen(direntPtr->d_name),sizeof(char));
+				
 				/* Construct the path to the subdirectory */
 				strcat(subdir,path);
 				if (path[strlen(path)-1] != '/')
 					strcat(subdir,"/");
 				strcat(subdir,direntPtr->d_name);
+				
 				/* Recurse into the subdirectory */
 				count += count_json_files(subdir);
 				free(subdir);
@@ -72,7 +75,6 @@ int pick_the_buckets(int argc,char **argv)
 	{
 		if ((fp = fopen(argv[2],"r")) == NULL) {
 			printf("Argument error: File '%s' doesn't exist\n", argv[2]);
-			// fclose(fp);
 			return -1;
 		}
 		fclose(fp);
@@ -123,30 +125,27 @@ int pick_the_buckets(int argc,char **argv)
 
 void construct_product(struct clique **ptr,char *path,char *id, char *site)
 {
-	strip_ext(id);
-
-	// initialazation of the product
-	struct product *p = product_init(atoi(id), site, (*ptr));
-	
-	// (*ptr)->first_product = malloc(sizeof(struct product));
-	(*ptr)->first_product = p;
-	// (*ptr)->last_product = malloc(sizeof(struct product));
-	(*ptr)->last_product = p;
-	(*ptr)->size += 1; //increase the size by 1 
-
-	// printf("ptr %p\n\n",(*(ptr->first_product))->specs);
-
 
 	struct vector *vec;
 	FILE *fp;
-	char *line = NULL,*temp_1=NULL,*temp2=NULL,*temp_3=NULL;
+	char *line = NULL,*temp_1 = NULL,*temp2 = NULL,*temp_3 = NULL;
 	size_t len = 0;
-	ssize_t read;
+	size_t read;
 	char *str;
 	fp = fopen (path,"r");
 	if (fp  ==  NULL)
 		printf ("Cannot open directory '%s'\n", path);
 
+	strip_ext(id);	// Remove '.json' from the filename
+	// Initialazation of the product
+	struct product *p = product_init(atoi(id), site, (*ptr));
+	
+	(*ptr)->first_product = p;
+
+	(*ptr)->last_product = p;
+	(*ptr)->size += 1; // Increase the size by 1
+
+	/* Begin reading the json file */
 	while ((read = getline(&line, &len, fp)) != -1) 
 	{
 		// take the line of the file

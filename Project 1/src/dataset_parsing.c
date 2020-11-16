@@ -3,12 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <fcntl.h> // for open
-#include <unistd.h>
 #include "../include/util.h"
 #include "../include/map.h"
 #include "../include/clique.h"
 #include "../include/dataset_parsing.h"
+
 int read_data_files(struct hash_map *ptr, int size, char *path)
 {
 	struct dirent *pDirent;
@@ -59,7 +58,7 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 
 				strip_ext(path_help); // remove .json and keep the result of site/id as key for hashing
 				/* create the clique to pass it as argument */
-				new_clique = create_new();
+				new_clique = create_clique();
 
 				/* path for file */
 				path_to_file = malloc(strlen(path) + 2 + strlen(pDirent->d_name));
@@ -104,11 +103,8 @@ void read_relations(struct hash_map *map, char *path)
 				if (line[strlen(line)-2] == '1') //no reason to break into products the 0 values 
 				{
 					counter++;
-					// printf("The line is : %s \n", line);
 					char *temp_2=NULL;
 					str = line;
-					//printf("%s\n",line );
-
 
 					while (str[0] != ',')
 						str = str + 1;
@@ -118,7 +114,6 @@ void read_relations(struct hash_map *map, char *path)
 					temp_1 = malloc(strlen(line)+1);
 
 					strcpy(temp_1, line); // we got the first product 
-					// temp_1 = line;
 					temp2 = str + 1 ; // get the second product 
 
 					while (str[0] != ',')
@@ -128,7 +123,6 @@ void read_relations(struct hash_map *map, char *path)
 					temp_2 = malloc(strlen(temp2)+1);
 
 					strcpy(temp_2,temp2);
-					// temp_2 = temp2;
 					//we have both now
 					// i will hash them to find where they are so i can merge them
 
@@ -141,7 +135,7 @@ void read_relations(struct hash_map *map, char *path)
 			}
 		}
 		else
-			printf("Error in coding didnt find the appropriate fields \n");
+			printf("Parsing error: didnt find the appropriate fields \n");
 	}
 	free(line);
 	fclose(fp);

@@ -13,21 +13,17 @@ struct spec {
 struct spec* spec_init(char *spec_name, struct vector *vec);
 void spec_delete(void *ptr);
 
-/*
- * Struct: product
- * ---------------
- * It describes a product by its id, the website it
- * came from and a list of its own specs
- */
 struct product {
 	int  	   id;
 	char *website;
-	struct list *specs;	  /* List of struct product_values */
-	struct product *next; /* Pseudo-list of products */
-	struct clique *clique;
+	struct list *specs;	  	/* List of struct product specifications */
+	struct product *next; 	/* Pseudo-list of products */
+	struct clique *clique;	/* Pointer to the product's clique */
 };
 
-struct product* create_product(int id, const char *website);
+struct product* product_init(int id, char *website, struct clique *ptr);
+
+void product_delete(struct product *p);
 
 
 struct clique {
@@ -36,14 +32,11 @@ struct clique {
 	struct product *last_product;
 };
 
-void merge_cliques(struct clique *c1, struct clique *c2) ;
+struct clique * create_clique();
 
-//void merge_cliques(struct clique *c1, struct clique *c2);
-
-struct clique * create_new();
+void merge_cliques(struct clique *c1, struct clique *c2);
 
 void delete_clique(void *c);
 
-struct product* product_init(int id, char *website, struct clique *ptr);
-void product_delete(struct product *p);
+/* Adds a spec to the list of a clique's first product */
 void push_specs(struct clique *ptr, char *spec , struct vector *vec);
