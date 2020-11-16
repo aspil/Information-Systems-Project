@@ -4,15 +4,21 @@
 #include "../include/list.h"
 #include "../include/clique.h"
 
-struct list* list_create(DeleteValueFunction delete_val) {
+struct list* list_init(CompareFunction comp, DeleteValueFunction delete_val) {
 	struct list *l = malloc(sizeof(struct list));
 	l->size = 0;
 	l->head = NULL;
 	l->tail = NULL;
 	l->delete_value = delete_val;
+	l->compare = comp;
 	return l;
 }
-
+unsigned int list_size(struct list *l) {
+	return l->size;
+}
+int list_empty(struct list *l) {
+	return l->size == 0;
+}
 void list_append(struct list *l, void *item) {
 	struct list_node *new_node = malloc(sizeof(struct list_node));
 	new_node->data = item;
@@ -27,6 +33,25 @@ void list_append(struct list *l, void *item) {
 	}
 	l->size++;
 	return;
+}
+
+int list_find(struct list *l, void *data) {
+	struct list_node *temp = l->head;
+	while (temp != NULL) {
+		if (l->compare(temp->data, data) == 0)
+			return 1;
+		temp = temp->next;
+	}
+	return 0;
+}
+void* list_get(struct list *l, int pos) {
+	struct list_node *temp = l->head;
+	int cnt = pos;
+	while (cnt > 0) {
+		temp = temp->next;
+		cnt--;
+	}
+	return temp->data;
 }
 
 void list_delete(struct list *l) {
@@ -51,4 +76,20 @@ void list_print_products(struct list *l) {
 		temp = temp->next;
 	}
 	printf("\n");
+}
+
+void* list_first_value(struct list *l) {
+	return (! list_empty(l)) ? l->head->data : NULL;
+}
+
+void* list_last_value(struct list *l) {
+	return (! list_empty(l)) ? l->tail->data : NULL;
+}
+
+struct list_node* list_first(struct list *l) {
+	return l->head;
+}
+
+struct list_node* list_last(struct list *l) {
+	return l->tail;
 }
