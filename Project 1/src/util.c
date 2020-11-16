@@ -39,10 +39,9 @@ int count_json_files(char *path) {
 		return -1;
 	}
 	while((direntPtr = readdir(dir)) != NULL) {
-		if (strcmp(direntPtr->d_name, ".") != 0 && strcmp(direntPtr->d_name, "..") != 0) {\
+		if (strcmp(direntPtr->d_name, ".") != 0 && strcmp(direntPtr->d_name, "..") != 0) {
 			/* Check if the pointer is a directory, and visit recursively */
 			if (direntPtr->d_type  ==  DT_DIR) {
-
 				subdir = calloc(strlen(path) + 2 + strlen(direntPtr->d_name),sizeof(char));
 				/* Construct the path to the subdirectory */
 				strcat(subdir,path);
@@ -68,38 +67,55 @@ int pick_the_buckets(int argc,char **argv)
 	int number_of_buckets;
 	long ret;
 	char *ptr;
-	if (strcmp(argv[1],"-s")  ==  0)	/* there is -s argument */
+	FILE *fp;
+	if (argc == 3)
 	{
-		if (argc == 2) { //last position
-			printf("Argument error: no 'size' argument specified\n");
-			return -1; 
-		}
-		
-		ret = strtol(argv[2], &ptr, 10);
-		if (ret  ==  0)
-		{
-			printf("Argument error: false 'size' argument or zero\n",argv[0],argv[1]);
+		if ((fp = fopen(argv[2],"r")) == NULL) {
+			printf("Argument error: File '%s' doesn't exist\n", argv[2]);
+			// fclose(fp);
 			return -1;
 		}
-		number_of_buckets = atoi(argv[2]);
-		if (number_of_buckets <= 0)
-		{
-			printf("Argument error : 'size' argument is negative\n");
-			return -1;
-		}
-		return number_of_buckets; 
-	}
-	else {	/* -s option not given */
-		if (argc == 3) {
-			printf("Argument error\nDid you mean: %s %s ?\n",argv[0],argv[1]);
-			return -1;
-		}
+		fclose(fp);
 		number_of_buckets = count_json_files(argv[1]);
 		if (number_of_buckets <= 0)
 		{
 			printf("No data to be input\n");
 			return -1;
 		}
+	}
+	else if (argc == 5)
+	{
+		if ((fp = fopen(argv[2],"r")) == NULL) {
+			printf("Argument error: File '%s' doesn't exist\n", argv[2]);
+			return -1;
+		}
+		fclose(fp);
+		if (strcmp(argv[3],"-s")  ==  0)	/* there is -s argument */
+		{
+			ret = strtol(argv[4], &ptr, 10);
+			if (ret  ==  0)
+			{
+				printf("Argument error: false 'size' argument or zero\n");
+				return -1;
+			}
+			number_of_buckets = atoi(argv[4]);
+			if (number_of_buckets <= 0)
+			{
+				printf("Argument error : 'size' argument is negative\n");
+				return -1;
+			}
+			return number_of_buckets; 
+		}
+		else
+		{
+			printf("No -s provided. Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
+			return -1;
+		}
+	}
+	else
+	{
+		printf("Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
+		return -1;
 	}
 	return number_of_buckets;
 }

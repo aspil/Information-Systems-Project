@@ -1,21 +1,21 @@
 #pragma once
+#include "vector.h"
+#include "types.h"
 
-/*
- * Struct: product_values
- * ----------------------
- * It describes a product's spec
- * by a name and its value
- */
-struct product_values {
+struct vector;	/* Redeclare to avoid warnings because of include cycle between vector.h and clique.h */
+
+struct spec {
 	char *name;
 	char **value;
+	int cnt;
 };
-
-struct spec_list
-{
-	struct product_values spec;
-	struct spec_list *next;
-};
+struct spec* spec_init(char *spec_name, struct vector *vec);
+void spec_delete(void *ptr);
+// struct spec_list
+// {
+// 	struct product_values spec;
+// 	struct spec_list *next;
+// };
 /*
  * Struct: product
  * ---------------
@@ -25,8 +25,7 @@ struct spec_list
 struct product {
 	int  	   id;
 	char *website;
-	struct spec_list *next_spec;	  /* List of struct product_values */
-	struct spec_list *last_spec;
+	struct list *specs;	  /* List of struct product_values */
 	struct product *next; /* Pseudo-list of products */
 	struct clique *clique;
 };
@@ -46,6 +45,8 @@ void merge_cliques(struct clique *c1, struct clique *c2) ;
 
 struct clique * create_new();
 
-void product_init(struct clique *ptr,int id, char *website);
+void delete_clique(void *c);
 
-void push_specs(struct clique *ptr,char * spec , char **value);
+struct product* product_init(int id, char *website, struct clique *ptr);
+void product_delete(struct product *p);
+void push_specs(struct clique *ptr, char *spec , struct vector *vec);

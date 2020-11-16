@@ -4,7 +4,7 @@
 #include "../include/clique.h"
 #include <stdlib.h>
 #include <string.h>
-
+#include  "../include/list.h"
 struct product* create_product(int id, const char *website) {
 	struct product *p = malloc(sizeof(struct product));
 	p->id = id;
@@ -16,51 +16,41 @@ struct product* create_product(int id, const char *website) {
 
 void merge_cliques(struct clique *c1, struct clique *c2) {
 	/* Update the last product */
-	//printf("The first product of clique is %s %d \n",c1->first_product->website,c1->firs );
-	struct product *ptr=c2->first_product;
 
-	printf("merge\n");
+	struct product *ptr = c2->first_product;
+	struct product *ptr_1=c1->first_product;
 
-	if (ptr!=NULL)
-	{
-		printf("BIg letters is %s %d \n",ptr->website,ptr->id );
-	}
-	printf("ptr is %p \n",ptr);
-	
-	printf("Merging\n");
+	// printf("Bre sapio %s %d \n",c2->last_product->website,c2->last_product->id );
+
+	if (c1->first_product == c2->first_product)
+		return;
+
 	c1->last_product->next = c2->first_product;
-	c1->last_product = c2->last_product;
-	printf("The second product of clique is %s %d \n",c2->first_product->website,c2->first_product->id );
-	/* Now both cliques refer to the same product sequence */
-	c2->first_product = c1->first_product;
-	printf("The first product of clique is %s %d \n",c1->first_product->website,c1->first_product->id );
-	printf("The second product of clique is %s %d \n",c2->first_product->website,c2->first_product->id );
+	// c1->last_product = c2->last_product;
 	/* Update their sizes */
 	c1->size += c2->size;
-	c2->size = c1->size;
-<<<<<<< HEAD
-	
-	return;
-=======
-
-	while (ptr!=NULL)
+	//c2->size = c1->size;
+	// struct product *temp = c1->first_product;
+	while (ptr != NULL)
 	{
-		//printf("kai edw\n");
-	
-		/* code */	
-		ptr->clique->first_product=c1->first_product;
-		ptr->clique->last_product=c2->last_product;
-		ptr->clique->size=c1->size +c2->size;
-		printf("ok ok %s %d \n",ptr->clique->first_product->website,ptr->clique->first_product->id );
-		ptr=ptr->next;
+		ptr->clique->first_product = c1->first_product;
+		ptr->clique->last_product = c2->last_product;
+		ptr->clique->size = c1->size;
+		ptr = ptr->next;
 	}
-
-
-
+	// temp = c1->first_product;
+	while (ptr_1 != NULL)
+	{
+		// ptr_1->clique->first_product = c1->first_product;
+		ptr_1->clique->last_product = c2->last_product;
+		ptr_1->clique->size = c1->size;
+		ptr_1 = ptr_1->next;
+	}
+	return;
 }
 
 
-struct clique * create_new()
+struct clique* create_new()
 {
 	struct clique *c = malloc(sizeof(struct clique));
 	c->size = 0;
@@ -69,71 +59,63 @@ struct clique * create_new()
 	return c;
 }
 
-
-void product_init(struct clique *ptr,int id, char *website)
-{
-	
-	ptr->size+=1; //increase the size 1 
-
-	ptr->first_product=malloc(sizeof(struct product));
-
-	ptr->last_product=ptr->first_product;
-
-	ptr->first_product->clique=ptr;
-
-	ptr->first_product->id=id;
-
-	ptr->first_product->website=malloc(strlen(website)+1);
-
-	strcpy(ptr->first_product->website=malloc(strlen(website)+1),website);
-	
-	ptr->first_product->next_spec=NULL;
-
-	ptr->first_product->last_spec=NULL;
-
-	ptr->first_product->next=NULL;
-
-
+void delete_clique(void *ptr) {
+	struct clique *c = (struct clique *) ptr;
+	struct product *temp = (c->first_product), *next = NULL;
+	while (temp != NULL) {
+		next = (temp)->next;
+		product_delete(temp);
+		temp = next;
+	}
 }
 
-void push_specs(struct clique *ptr,char * spec , char **value)
+struct spec* spec_init(char *spec_name, struct vector *vec) {
+	struct spec *spec = malloc(sizeof(struct spec));
+	spec->name = malloc(strlen(spec_name)+1);
+	strcpy(spec->name, spec_name);
+
+	spec->cnt = vector_size(vec);
+	spec->value = malloc(vector_size(vec) * sizeof(struct spec*));
+	for (int i = 0; i < spec->cnt; i++) {
+		char *spec_val = (char*) vector_get(vec, i);
+		spec->value[i] = malloc(strlen(spec_val) + 1);
+		strcpy(spec->value[i], spec_val);
+	}
+	return spec;
+}
+
+void spec_delete(void *ptr) {
+	struct spec *spec = (struct spec *) ptr;
+	free(spec->name);
+	for (int i = 0; i < spec->cnt; i++)
+		free(spec->value[i]);
+	free(spec->value);
+	free(spec);
+}
+
+struct product* product_init(int id, char *website, struct clique *ptr)
 {
-	if (ptr->first_product->last_spec==NULL)
-	{
-		ptr->first_product->next_spec=malloc(sizeof(struct spec_list));
+	struct product *p = calloc(1,sizeof(struct product));
+	p->id = id;
+	p->website = malloc(strlen(website)+1);
+	p->clique = ptr;
+	strcpy(p->website, website);
+	p->specs = list_create(spec_delete);
+	p->next = NULL;
+	return p;
+}
 
-		ptr->first_product->last_spec=ptr->first_product->next_spec;
+void product_delete(struct product *p) {
+	free(p->website);
+	list_delete(p->specs);
+	free(p);
+	p = NULL;
+}
 
-		ptr->first_product->next_spec->spec.name=malloc(strlen(spec)+1);
+void push_specs(struct clique *ptr, char *spec_name, struct vector *vec)
+{
+	struct spec *spec = spec_init(spec_name, vec);
 
-		strcpy(ptr->first_product->next_spec->spec.name,spec);
-
-		ptr->first_product->next_spec->spec.value=value;
-	}
-	else
-	{
-		//printf("u go here \n");
-		ptr->first_product->last_spec->next=malloc(sizeof(struct spec_list));
-
-		//printf("mexri edw 1 \n");
-
-		//printf("mexri edw 1 \n");
-
-		ptr->first_product->last_spec->next->spec.name=malloc(strlen(spec)+1);
-
-		//printf("mexri edw 1 \n");
-		
-		strcpy(ptr->first_product->last_spec->next->spec.name,spec);
-
-		ptr->first_product->last_spec->next->spec.value=value;
-
-		ptr->first_product->last_spec=ptr->first_product->last_spec->next;
-
-
-
-	}
-
-
-
->>>>>>> 7ab3321b00e1763cad9a69643d6877edb91681f5
+	list_append(ptr->first_product->specs, spec);
+	return;
 }
