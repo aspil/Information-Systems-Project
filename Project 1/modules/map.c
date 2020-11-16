@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../include/map.h"
 #include "../include/clique.h"
+// #include "../include/vector.h"
 
 struct hash_map* map_init(
 	unsigned int size,
@@ -45,7 +46,7 @@ void map_insert(struct hash_map *map, void *key, void *value) {
 	}
 	else {
 		/* Allocate space for a new node on the next node of the last node */
-		struct map_node *new_node = malloc(sizeof(struct map_node*));
+		struct map_node *new_node = malloc(sizeof(struct map_node));
 		new_node->key = key;
 		new_node->value = value;
 		new_node->next = NULL;
@@ -68,17 +69,46 @@ int map_find(struct hash_map *map, void *key, void **value) {
 	return 0;
 }
 
-void map_clear(struct hash_map *map) {
+void map_delete(struct hash_map *map) {
+	struct map_node *temp, *next_x;
+	int counter = 0;
+	struct clique *node_l;
+	struct vector *vec;
+	vec = vector_init(1,NULL);
 	for (unsigned int i = 0; i < map->size; ++i) {
-		if (map->array[i] != NULL) {
-			if (map->delete_key != NULL)
-				map->delete_key(map->array[i]->key);
+		temp = map->array[i];
+		while (temp != NULL) {
+			
 			if (map->delete_value != NULL) {
-				map->delete_value(map->array[i]->value);
+				if (counter==0) {
+					node_l = (struct clique *) temp->value;
+					
+					vector_push_back(vec, node_l->first_product);
+					map->delete_value(temp->value);
+					counter++;
+				}
+				else {
+					node_l = (struct clique *) temp->value;
+
+					int result = vector_search_product(vec, node_l->first_product);
+
+					if (result==-1) {
+						vector_push_back(vec, node_l->first_product);
+						map->delete_value(temp->value);
+					}
+				}
+				free(temp->value);
+				if (map->delete_key != NULL)
+					map->delete_key(temp->key);// eq free(map->array[i]->key);
+				
 			}
-			free(map->array[i]);
+			next_x = temp->next;
+			free(temp);
+			temp = next_x;
 		}
 	}
+	vector_delete(vec);
+	free(map->last_chain_bucket);
 	free(map->array);
 	free(map);
 }
@@ -99,4 +129,104 @@ int compare_int(void *a, void *b) {
 }
 int compare_str(void *a, void *b) {
 	return strcmp((char*) a, (char*) b);
+}
+
+int search_and_change(char *first_id, char *second_id, struct hash_map *map)
+{
+	//hash the first product to find it 
+	struct clique *c1,*c2;
+	unsigned int pos = map->hash(first_id) % map->size;
+	unsigned int pos_2 = map->hash(second_id) % map->size;
+
+	//printf("Position is : %d %s \n",pos ,(char*)first_id);
+
+	//printf("Position is : %d %s \n",pos_2 ,(char*)second_id);
+	struct map_node *search=map->array[pos];
+
+	struct map_node *search_2=map->array[pos_2];
+
+	//printf("%p %p \n",search,search_2 );
+
+	if (search == NULL || search_2==NULL)
+	{	
+		printf("No such product hashed\n");
+		return -1;
+	}
+	else
+	{
+		while (search!=NULL)
+		{
+			if (strcmp((char*)search->key, first_id)!=0)
+			{
+				//they are not the same , look the next 
+				search=search->next;
+			}
+			else
+			{	//you found the node u were looking for 
+
+				c1=(struct clique *)search->value;
+				break;
+
+			}
+		}
+
+		if (search==NULL)
+		{
+			printf("No such product hashed \n");
+			return -1;
+		}
+		else
+		{
+			while (search_2!=NULL)
+			{
+				if (strcmp((char*)search_2->key,second_id)!=0)
+				{
+					//they are not the same , look the next 
+					search_2=search_2->next;
+				}
+				else
+				{	//you found the node u were looking for 
+
+					// printf("Print the key : %s\n", (char*)search_2->key);
+					c2=(struct clique *)search_2->value;
+					break;
+
+				}
+			}
+		}
+		if (search_2==NULL)
+		{
+			printf("No such product hashed \n");
+			return -1;
+		}
+		// you have both cliques you need to merge 
+		merge_cliques(c1,c2);
+	}
+	return 1;
+}
+
+void map_print(struct hash_map *map) {
+	struct map_node *temp;
+	char *key;
+	struct clique *clique;
+	struct product *product;
+	for (unsigned int i = 0; i < map->size; ++i) {
+		temp = map->array[i];
+		printf("-- Hashed Position %u --\n", i);
+		while (temp != NULL) {
+			key = (char*) temp->key;
+			printf("%s\n", key);
+			clique = (struct clique*) temp->value;
+			product = clique->first_product;
+			while (product != NULL) {
+				printf("\tproduct: %s - %d\n", product->website, product->id);
+				product = product->next;
+			}
+			printf("\tclique's first product: %s - %d\n", (clique->first_product)->website, (clique->first_product)->id);
+			printf("\tclique's last product: %s - %d\n", (clique->last_product)->website, (clique->last_product)->id);
+			temp = temp->next;
+		}
+		printf("\n");
+	}
+	return;
 }
