@@ -9,13 +9,10 @@ struct spec {
 	char **value;
 	int cnt;
 };
+
 struct spec* spec_init(char *spec_name, struct vector *vec);
 void spec_delete(void *ptr);
-// struct spec_list
-// {
-// 	struct product_values spec;
-// 	struct spec_list *next;
-// };
+
 /*
  * Struct: product
  * ---------------

@@ -20,10 +20,10 @@ struct vector* vector_init(int size, DeleteValueFunction delete_val);
 
 int vector_size(struct vector *v);
 
-void* vector_get(struct vector* vec, int pos);
+void* vector_get(struct vector *vec, int pos);
 
-void vector_set(struct vector* vec, int pos, void *value);
-void vector_push_back(struct vector* vec, void *value);
+void vector_set(struct vector *vec, int pos, void *value);
+void vector_push_back(struct vector *vec, void *value);
 void vector_delete(struct vector *vec);
 
 int vector_search_clique(struct vector *vec, struct clique *address);
