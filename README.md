@@ -3,16 +3,16 @@
 ### Compilation
 Compilation of the app is done by using `make` or `make app`.
 ### Execution
-Run with `./run <data_path> <csv_file_path> [-s <n>]`
+Run with `./app <data_path> <csv_file_path> [-s <n>]`
 
 - **data_path** : directory with json files. If there are subdirectories with more json files they are visited recursively
 - **csv_file_path** : full path to the csv file containing the product relations
 - **[-s <n\>]** : optional,specifies the size of the hash table that is used. If not specified, the program counts the number of the json files and uses that number as the hash table's size.
 
 Examples:
-- `./run Datasets Datasets/sigmod_large_labelled_dataset.csv`
-- `./run Datasets Datasets/sigmod_medium_labelled_dataset.csv -s 137`
-- `./run Datasets/camera_specs/2013_camera_specs Datasets/sigmod_large_labelled_dataset.csv -s 1000`
+- `./app Datasets Datasets/sigmod_large_labelled_dataset.csv`
+- `./app Datasets Datasets/sigmod_medium_labelled_dataset.csv -s 137`
+- `./app Datasets/camera_specs/2013_camera_specs Datasets/sigmod_large_labelled_dataset.csv -s 1000`
 
 ### Testing
 Testing is performed on the three data structures and the app. To do so, do one of the following:
