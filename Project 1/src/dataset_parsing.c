@@ -9,14 +9,12 @@
 #include "../include/map.h"
 #include "../include/clique.h"
 #include "../include/dataset_parsing.h"
-
 int read_data_files(struct hash_map *ptr, int size, char *path)
 {
-	struct dirent *pDirent, *iDirent;
-	int counter=0,counter1=0;
-	char *subdir, *value = NULL, *path_to_file;
+	struct dirent *pDirent;
+	char *subdir, *path_to_file;
 	struct clique *new_clique;
-	DIR *pDir, *iDir;
+	DIR *pDir;
 
 	pDir = opendir(path); //anoigma tou path
 	if (pDir == NULL) 
@@ -27,67 +25,61 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 
 	while ((pDirent = readdir(pDir)) != NULL) 
 	{
-		if (pDirent->d_name[0] != '.') //diabase ola ektos apo tis . 
+		if (strcmp(pDirent->d_name, ".") != 0 && strcmp(pDirent->d_name, "..") != 0) //diabase ola ektos apo tis . kai ..
 		{
-			counter++;
-			subdir = malloc (strlen(path)+ 2 + strlen(pDirent->d_name));
+			if (pDirent->d_type  ==  DT_DIR) {
 
-			strcpy(subdir, path);
-			strcat(subdir, "/"); //create each path for each site
-			strcat(subdir, pDirent->d_name);
-			iDir = opendir(subdir); 
-
-			if (iDir == NULL) 
-			{
-				printf("Cannot open directory '%s'\n", subdir);
-				return -1;
+				subdir = calloc(strlen(path) + 2 + strlen(pDirent->d_name),sizeof(char));
+				/* Construct the path to the subdirectory */
+				strcat(subdir,path);
+				if (path[strlen(path)-1] != '/')
+					strcat(subdir,"/");
+				strcat(subdir,pDirent->d_name);
+				/* Recurse into the subdirectory */
+				read_data_files(ptr, size, subdir);
+				free(subdir);
 			}
+			else if (pDirent->d_type == DT_REG && (strcmp(strrchr(pDirent->d_name,'.'), ".json")  ==  0)) {
 
-			while ((iDirent = readdir(iDir)) != NULL) //open site folder
-			{
-				if (iDirent->d_name[0] != '.') //open each product file
-				{
-					counter1++;
-					char *path_help;
-					
-					path_help = malloc(strlen(iDirent->d_name) + 3 + strlen(pDirent->d_name));
+				char *temp_path = calloc(strlen(path)+1,sizeof(char));
+				strcpy(temp_path, path);
+				
+				char *website = strtok(temp_path,"/");
+				char *prev_website;
+				do {
+					prev_website = website;
+					website = strtok(NULL,"/");
+				} while (website != NULL);
+				website = prev_website;
 
-					strcpy(path_help, pDirent->d_name);
+				char *path_help = malloc(strlen(website) + 3 + strlen(pDirent->d_name));
+				strcpy(path_help, website);
+				strcat(path_help,"//");
+				strcat(path_help,pDirent->d_name);
 
-					strcat(path_help,"//");
-					
-					strcat(path_help,iDirent->d_name);
+				strip_ext(path_help); // remove .json and keep the result of site/id as key for hashing
+				/* create the clique to pass it as argument */
+				new_clique = create_new();
 
-					strip_ext(path_help); // remove .json and keep the result of site/id as key for hashing
-
-					// create the clique to pass it as argument
-					new_clique = create_new();
-
-
-					// path for file
-					path_to_file = malloc(strlen(subdir) + 2 + strlen(iDirent->d_name));
-					strcpy(path_to_file, subdir);
-					strcat(path_to_file, "/");
-					strcat(path_to_file, iDirent->d_name);
-
-					// call the function to create the product and its info
-					construct_product(&new_clique, path_to_file, iDirent->d_name, pDirent->d_name);
-					free(path_to_file);
-					// time for hashing 
-					map_insert(ptr, path_help, new_clique);
-				}   
+				/* path for file */
+				path_to_file = malloc(strlen(path) + 2 + strlen(pDirent->d_name));
+				strcpy(path_to_file, path);
+				if (path[strlen(path_to_file)-1] != '/')
+					strcat(path_to_file,"/");
+				strcat(path_to_file, pDirent->d_name);
+				/* call the function to create the product and its info */
+				construct_product(&new_clique, path_to_file, pDirent->d_name, website);
+				/* time for hashing */
+				map_insert(ptr, path_help, new_clique);
+				free(path_to_file);
+				free(temp_path);
 			}
-			counter1=0;
-			closedir(iDir);
-
-			memset(subdir, '\0', strlen(subdir));
-			free(subdir);
-			subdir = value;
 		}
 	}
 	closedir(pDir);
 	return 1;
 }
+
 
 void read_relations(struct hash_map *map, char *path)
 {

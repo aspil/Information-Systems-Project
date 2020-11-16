@@ -100,7 +100,7 @@ struct product* product_init(int id, char *website, struct clique *ptr)
 	p->website = malloc(strlen(website)+1);
 	p->clique = ptr;
 	strcpy(p->website, website);
-	p->specs = list_create(spec_delete);
+	p->specs = list_init(NULL, spec_delete);
 	p->next = NULL;
 	return p;
 }

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	printf("%d \n",l);
 
 	// /* Free the allocated memory of the hash table */
-	// map_delete(map);
+	map_delete(map);
 
 	
 	return 0;
