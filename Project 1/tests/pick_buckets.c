@@ -1,5 +1,6 @@
 #include "../include/acutest.h"
 #include "../include/util.h"
+#include "../include/list.h"
 #include "../include/map.h"
 #include "../include/clique.h"
 #include "../include/dataset_parsing.h"
@@ -9,8 +10,8 @@ void pick_the_buckets1(void)
     char **arg_v,*array[5];
 
     array[0]="./run";
-    array[1]="./files";
-    array[2]="./files/data.csv";
+    array[1]="./tests/example";
+    array[2]="./tests/datasetY/datasetY.csv";
     array[3]="-s";
     array[4]="10";
 
@@ -29,9 +30,8 @@ void pick_the_buckets2(void)
     char **arg_v,*array[5];
 
     array[0]="./run";
-    array[1]="/home/fanmfh/Desktop/Project_1/camera_specs/example";
-    //array[1]="~/Desktop/Project_1/camera_specs/example/";
-    array[2]="./files/data.csv";
+    array[1]="./tests/example";
+    array[2]="./tests/datasetY/datasetY.csv";
     array[3]="-s";
     array[4]="ok";
 
@@ -41,9 +41,7 @@ void pick_the_buckets2(void)
 
     int size=pick_the_buckets(5,arg_v);
 
-    TEST_ASSERT(size == 9);
-
-
+    TEST_ASSERT(size == -1);
 }
 
 void pick_the_buckets3(void)
@@ -51,9 +49,8 @@ void pick_the_buckets3(void)
     char **arg_v,*array[3];
 
     array[0]="./run";
-    array[1]="/home/fanmfh/Desktop/Project_1/camera_specs/example";
-    //array[1]="~/Desktop/Project_1/camera_specs/example/";
-    array[2]="./files/data.csv";
+    array[1]="./tests/example";
+    array[2]="./tests/datasetY/datasetY.csv";
 
     arg_v=array;
 
@@ -83,7 +80,7 @@ void read_data_files2(void)
 {
     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
-    char *argv="/home/fanmfh/Desktop/examples/Project_1/tests/read_data_files"; 
+    char *argv="./tests/read_data_x"; 
 
     char *key="buy.net//5411";
 
@@ -109,7 +106,7 @@ void passing_clique(void)
 {
     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
-    char *argv="/home/fanmfh/Desktop/examples/Project_1/tests/read_data_files"; 
+    char *argv="./tests/read_data_x"; 
 
     char *key="buy.net//5411";
 
@@ -138,25 +135,33 @@ void passing_clique(void)
     TEST_ASSERT(strcmp(ptr_prod->website,"buy.net")==0);
 
     //first spec
+    struct list *list = ptr_prod->specs;
+	char *str = "page title";
+	char *spec = "Kodak PIXPRO AZ251 Bridge Digital Camera - 16MP 25X Optical Zoom HD720p -Black 16.15 Price Comparison at Buy.net";
+    TEST_ASSERT(list_find(list,str) == 0);
+	struct spec *s1 = (struct spec*)list_get(list,0);
+    TEST_ASSERT(strcmp((char*)s1->value[0],spec) == 0);
 
-    struct spec_list *list=ptr_prod->next_spec;
-
-    TEST_ASSERT(strcmp(list->spec.name,"page title")==0);
-    TEST_ASSERT(strcmp(list->spec.value[0],"Kodak PIXPRO AZ251 Bridge Digital Camera - 16MP 25X Optical Zoom HD720p -Black 16.15 Price Comparison at Buy.net")==0);
-
-    //second spec
-    list=list->next;
-    TEST_ASSERT(strcmp(list->spec.name,"")==0);
-    TEST_ASSERT(strcmp(list->spec.value[0],"sth")==0);
+    // second spec
+	str = "";
+	spec = "sth";
+    TEST_ASSERT(list_find(list,str) == 0);
+	s1 = (struct spec*)list_get(list,1);
+    TEST_ASSERT(strcmp((char*)s1->value[0],spec) == 0);
 
     //last spec
-    list=ptr_prod->last_spec;
-    
-    TEST_ASSERT(strcmp(list->spec.name,"height")==0);
-    TEST_ASSERT(strcmp(list->spec.value[0],"9.7 cm")==0);
-    TEST_ASSERT(strcmp(list->spec.value[1],"3.8 in.")==0);
+    str = "height";
+	char **specs = malloc(2*sizeof(char*));
+	specs[0] = "9.7 cm";
+	specs[1] = "3.8 in.";
+    TEST_ASSERT(list_find(list,str) == 0);
 
+	s1 = (struct spec*)list_get(list,2);
+    TEST_ASSERT(strcmp((char*)s1->value[0],specs[0]) == 0);
 
+	s1 = (struct spec*)list_get(list,2);
+	TEST_ASSERT(strcmp((char*)s1->value[1],specs[1]) == 0);
+	free(specs);
 }
 
 void read_relations_1(void)
