@@ -3,11 +3,13 @@
 #include <stdlib.h>
 #include "../include/list.h"
 #include "../include/clique.h"
-struct list* list_create() {
+
+struct list* list_create(DeleteValueFunction delete_val) {
 	struct list *l = malloc(sizeof(struct list));
 	l->size = 0;
 	l->head = NULL;
 	l->tail = NULL;
+	l->delete_value = delete_val;
 	return l;
 }
 
@@ -27,11 +29,13 @@ void list_append(struct list *l, void *item) {
 	return;
 }
 
-void list_clear(struct list *l) {
+void list_delete(struct list *l) {
 	struct list_node *temp = l->head, *next;
 	if (l->size != 0) {
 		while (temp != NULL) {
 			next = temp->next;
+			if (l->delete_value != NULL)
+				l->delete_value(temp->data);
 			free(temp);
 			temp = next;
 		}
