@@ -31,23 +31,25 @@ struct hash_map* map_init(
 
 void map_insert(struct hash_map *map, void *key, void *value) {
 	unsigned int pos = map->hash(key) % map->size;
+	// printf("Inserting %p %p %d %d\n", key, value, *(int*)key, *(int*)value);
 	/* The initial bucket of the hashed key is empty */
 	if (map->array[pos] == NULL) {
 		/* Allocate space for the first node of the bucket in pos index */
 		map->array[pos] = malloc(sizeof(struct map_node));
 		map->array[pos]->key = key;
 		map->array[pos]->value = value;
+		// printf("Inserted %p %p %d %d\n", map->array[pos]->key, map->array[pos]->value, *(int*)map->array[pos]->key, *(int*)map->array[pos]->value);
+
 		map->array[pos]->next = NULL;
 		map->last_chain_bucket[pos] = map->array[pos];
-		/* printf("Inserted key %s, and value with size %d, to position %u\n", (char*)map->array[pos]->key,\
-		((struct clique*) map->array[pos]->value)->size, pos);*/
 	}
 	else {
 		/* Allocate space for a new node on the next node of the last node */
 		struct map_node *new_node = malloc(sizeof(struct map_node));
 		new_node->key = key;
 		new_node->value = value;
-		new_node->deleted = 0;
+		// printf("Inserted %p %p %d %d\n", new_node->key, new_node->value, *(int*)new_node->key, *(int*)new_node->value);
+
 		new_node->next = NULL;
 		/* Chain the new node */
 		map->last_chain_bucket[pos]->next = new_node;
@@ -56,18 +58,26 @@ void map_insert(struct hash_map *map, void *key, void *value) {
 	}
 }
 
-int map_find(struct hash_map *map, void *key, void **value) {
+void* map_find(struct hash_map *map, void *key) {
 	struct map_node *temp = map->array[map->hash(key) % map->size];
 	while (temp != NULL) {
-		if (map->compare(key, temp->key) == 0) {
-			*value = temp->value;
-			return 1;
+		if (map->compare(temp->key, key) == 0) {
+			return temp->value;
 		}
 		temp = temp->next;
 	}
-	return 0;
+	return NULL;
 }
-
+struct map_node* map_find_node(struct hash_map *map, void *key) {
+	struct map_node *temp = map->array[map->hash(key) % map->size];
+	while (temp != NULL) {
+		if (map->compare(temp->key, key) == 0) {
+			return temp;
+		}
+		temp = temp->next;
+	}
+	return NULL;
+}
 void map_delete(struct hash_map *map) {
 	struct map_node *temp, *next_x;
 	int counter = 0;
