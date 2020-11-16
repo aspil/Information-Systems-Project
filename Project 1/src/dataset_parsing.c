@@ -12,8 +12,14 @@
 
 int read_data_files(struct hash_map *ptr, int size, char *path)
 {
+<<<<<<< HEAD
 	struct dirent *pDirent;
 	char *subdir, *path_to_file;
+=======
+	struct dirent *pDirent, *iDirent;
+	int counter=0,counter1=0;
+	char *subdir, *value = NULL, *path_to_file;
+>>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 	struct clique *new_clique;
 	DIR *pDir;
 
@@ -28,6 +34,7 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 	{
 		if (strcmp(pDirent->d_name, ".") != 0 && strcmp(pDirent->d_name, "..") != 0) //diabase ola ektos apo tis . kai ..
 		{
+<<<<<<< HEAD
 			if (pDirent->d_type  ==  DT_DIR) {
 
 				subdir = calloc(strlen(path) + 2 + strlen(pDirent->d_name),sizeof(char));
@@ -76,6 +83,58 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 				free(temp_path);
 			}
 			// closedir(iDir);
+=======
+			counter++;
+			subdir = malloc (strlen(path)+ 2 + strlen(pDirent->d_name));
+
+			strcpy(subdir, path);
+			strcat(subdir, "/"); //create each path for each site
+			strcat(subdir, pDirent->d_name);
+			iDir = opendir(subdir); 
+
+			if (iDir == NULL) 
+			{
+				printf("Cannot open directory '%s'\n", subdir);
+				return -1;
+			}
+
+			while ((iDirent = readdir(iDir)) != NULL) //open site folder
+			{
+				if (iDirent->d_name[0] != '.') //open each product file
+				{
+					counter1++;
+					char *path_help;
+					
+					path_help = malloc(strlen(iDirent->d_name) + 3 + strlen(pDirent->d_name));
+
+					strcpy(path_help, pDirent->d_name);
+
+					strcat(path_help,"//");
+					
+					strcat(path_help,iDirent->d_name);
+
+					strip_ext(path_help); // remove .json and keep the result of site/id as key for hashing
+
+					// create the clique to pass it as argument
+					new_clique = create_new();
+
+
+					// path for file
+					path_to_file = malloc(strlen(subdir) + 2 + strlen(iDirent->d_name));
+					strcpy(path_to_file, subdir);
+					strcat(path_to_file, "/");
+					strcat(path_to_file, iDirent->d_name);
+
+					// call the function to create the product and its info
+					construct_product(&new_clique, path_to_file, iDirent->d_name, pDirent->d_name);
+					free(path_to_file);
+					// time for hashing 
+					map_insert(ptr, path_help, new_clique);
+				}   
+			}
+			counter1=0;
+			closedir(iDir);
+>>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 
 			// memset(subdir, '\0', strlen(subdir));
 			// free(subdir);

@@ -4,6 +4,7 @@
 struct map_node {
 	void *key;
 	void *value;
+	int deleted;
 	struct map_node *next;
 };
 

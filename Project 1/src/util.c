@@ -42,6 +42,10 @@ int count_json_files(char *path) {
 		if (strcmp(direntPtr->d_name, ".") != 0 && strcmp(direntPtr->d_name, "..") != 0) {
 			/* Check if the pointer is a directory, and visit recursively */
 			if (direntPtr->d_type  ==  DT_DIR) {
+<<<<<<< HEAD
+=======
+
+>>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 				subdir = calloc(strlen(path) + 2 + strlen(direntPtr->d_name),sizeof(char));
 				/* Construct the path to the subdirectory */
 				strcat(subdir,path);
@@ -64,6 +68,7 @@ int count_json_files(char *path) {
 
 int pick_the_buckets(int argc,char **argv)
 {
+<<<<<<< HEAD
 	int number_of_buckets;
 	long ret;
 	char *ptr;
@@ -118,6 +123,45 @@ int pick_the_buckets(int argc,char **argv)
 		return -1;
 	}
 	return number_of_buckets;
+=======
+
+	int number_of_buckets;
+	long ret;
+	char *ptr;
+	for (int i = 0; i < arg_c; ++i)
+	{
+		if (strcmp(arg_v[i],"-s")  ==  0)
+		{
+			// there is -s argument
+			i++;// sthn epomenh 8esh 8a uparxei poso megalo 8a einai
+			if (i  ==  arg_c) //last position
+			{
+				return -1; 
+			}
+			ret = strtol(arg_v[i], &ptr, 10);
+			if (ret  ==  0)
+			{
+				return -2;
+			}
+			number_of_buckets = atoi(arg_v[i]);
+			if (number_of_buckets < 0)
+			{
+				printf("Negative number_of_buckets \n");
+				return -3;
+			}
+			return number_of_buckets; 
+		}
+	}
+	/* -s option not given */
+	number_of_buckets = count_json_files(arg_v[1]);
+	if (number_of_buckets < 0 || number_of_buckets==0)
+	{
+		printf("No data to be input \n");
+		return 0;
+	}
+	return number_of_buckets;
+
+>>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 }
 
 
@@ -347,7 +391,12 @@ int print_results(struct hash_map *map) {
            ptr=ptr->next;      //check the next bucket
          }
             
+<<<<<<< HEAD
         }   
+=======
+        } 
+        vector_delete(vec);  
+>>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
         return relations;
 
 }
