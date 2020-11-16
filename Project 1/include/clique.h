@@ -26,10 +26,6 @@ struct product {
 	int  	   id;
 	char *website;
 	struct list *specs;	  /* List of struct product_values */
-<<<<<<< HEAD
-=======
-	// struct spec_list *last_spec;
->>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 	struct product *next; /* Pseudo-list of products */
 	struct clique *clique;
 };

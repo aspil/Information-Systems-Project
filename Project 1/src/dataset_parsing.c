@@ -12,16 +12,11 @@
 
 int read_data_files(struct hash_map *ptr, int size, char *path)
 {
-<<<<<<< HEAD
-	struct dirent *pDirent;
-	char *subdir, *path_to_file;
-=======
 	struct dirent *pDirent, *iDirent;
 	int counter=0,counter1=0;
 	char *subdir, *value = NULL, *path_to_file;
->>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 	struct clique *new_clique;
-	DIR *pDir;
+	DIR *pDir, *iDir;
 
 	pDir = opendir(path); //anoigma tou path
 	if (pDir == NULL) 
@@ -32,58 +27,8 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 
 	while ((pDirent = readdir(pDir)) != NULL) 
 	{
-		if (strcmp(pDirent->d_name, ".") != 0 && strcmp(pDirent->d_name, "..") != 0) //diabase ola ektos apo tis . kai ..
+		if (pDirent->d_name[0] != '.') //diabase ola ektos apo tis . 
 		{
-<<<<<<< HEAD
-			if (pDirent->d_type  ==  DT_DIR) {
-
-				subdir = calloc(strlen(path) + 2 + strlen(pDirent->d_name),sizeof(char));
-				/* Construct the path to the subdirectory */
-				strcat(subdir,path);
-				if (path[strlen(path)-1] != '/')
-					strcat(subdir,"/");
-				strcat(subdir,pDirent->d_name);
-				/* Recurse into the subdirectory */
-				read_data_files(ptr, size, subdir);
-				free(subdir);
-			}
-			else if (pDirent->d_type == DT_REG && (strcmp(strrchr(pDirent->d_name,'.'), ".json")  ==  0)) {
-
-				char *temp_path = calloc(strlen(path)+1,sizeof(char));
-				strcpy(temp_path, path);
-				
-				char *website = strtok(temp_path,"/");
-				char *prev_website;
-				do {
-					prev_website = website;
-					website = strtok(NULL,"/");
-				} while (website != NULL);
-				website = prev_website;
-
-				char *path_help = malloc(strlen(website) + 3 + strlen(pDirent->d_name));
-				strcpy(path_help, website);
-				strcat(path_help,"//");
-				strcat(path_help,pDirent->d_name);
-
-				strip_ext(path_help); // remove .json and keep the result of site/id as key for hashing
-				/* create the clique to pass it as argument */
-				new_clique = create_new();
-
-				/* path for file */
-				path_to_file = malloc(strlen(path) + 2 + strlen(pDirent->d_name));
-				strcpy(path_to_file, path);
-				if (path[strlen(path_to_file)-1] != '/')
-					strcat(path_to_file,"/");
-				strcat(path_to_file, pDirent->d_name);
-				/* call the function to create the product and its info */
-				construct_product(&new_clique, path_to_file, pDirent->d_name, website);
-				/* time for hashing */
-				map_insert(ptr, path_help, new_clique);
-				free(path_to_file);
-				free(temp_path);
-			}
-			// closedir(iDir);
-=======
 			counter++;
 			subdir = malloc (strlen(path)+ 2 + strlen(pDirent->d_name));
 
@@ -134,10 +79,10 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 			}
 			counter1=0;
 			closedir(iDir);
->>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 
-			// memset(subdir, '\0', strlen(subdir));
-			// free(subdir);
+			memset(subdir, '\0', strlen(subdir));
+			free(subdir);
+			subdir = value;
 		}
 	}
 	closedir(pDir);

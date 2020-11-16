@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     // char *y="./Datasets/sigmod_large_labelled_dataset.csv";
 	// char *y="./tests/datasetY/datasetY2.csv";
 	int size;
-	if ((size = pick_the_buckets(argc,argv)) <= 0) {
+	if ((size = pick_the_buckets(argc, argv)) <= 0) {
 		return -1;
 	}
 	/* Safe assignments, error checking was done in pick_the_buckets */
@@ -28,9 +28,7 @@ int main(int argc, char *argv[]) {
 	struct hash_map *map = map_init(size, hash_str, NULL, free, delete_clique); 
 	
 	read_data_files(map,size,data_path);
-
 	read_relations(map,relations_file);
-
 	int l = print_results(map);
 	printf("%d \n",l);
 

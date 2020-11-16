@@ -3,8 +3,6 @@
 #include <string.h>
 #include "../include/map.h"
 #include "../include/clique.h"
-// #include "../include/vector.h"
-
 struct hash_map* map_init(
 	unsigned int size,
 	HashFunction hash,
@@ -39,7 +37,6 @@ void map_insert(struct hash_map *map, void *key, void *value) {
 		map->array[pos] = malloc(sizeof(struct map_node));
 		map->array[pos]->key = key;
 		map->array[pos]->value = value;
-		map->array[pos]->deleted = 0;
 		map->array[pos]->next = NULL;
 		map->last_chain_bucket[pos] = map->array[pos];
 		/* printf("Inserted key %s, and value with size %d, to position %u\n", (char*)map->array[pos]->key,\
@@ -86,10 +83,6 @@ void map_delete(struct hash_map *map) {
 					node_l = (struct clique *) temp->value;
 					
 					vector_push_back(vec, node_l->first_product);
-<<<<<<< HEAD
-=======
-					// initArray_3(&dyn_arr,1,node_l->first_product);
->>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 					map->delete_value(temp->value);
 					counter++;
 				}
@@ -100,19 +93,8 @@ void map_delete(struct hash_map *map) {
 
 					if (result==-1) {
 						vector_push_back(vec, node_l->first_product);
-<<<<<<< HEAD
 						map->delete_value(temp->value);
 					}
-=======
-						// insertArray_3(&dyn_arr,node_l->first_product);
-						map->delete_value(temp->value);
-					}
-					else {
-						//printf("swsto3 : %s \n",temp->key );
-					}
-					
-
->>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 				}
 				free(temp->value);
 				if (map->delete_key != NULL)
@@ -121,12 +103,8 @@ void map_delete(struct hash_map *map) {
 			}
 			next_x = temp->next;
 			free(temp);
-<<<<<<< HEAD
+
 			temp = next_x;
-=======
-			temp=next_x;
-			//map->array[i] = NULL;
->>>>>>> a5004a8ccd74562abe2f57265e287d92f2084055
 		}
 	}
 	vector_delete(vec);
