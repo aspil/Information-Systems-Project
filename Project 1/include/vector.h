@@ -1,15 +1,14 @@
 #pragma once
 
-#include "../include/clique.h"
-#include "../include/util.h"
-
+#include "types.h"
+#include "clique.h"
 #define VECTOR_MIN_CAPACITY 7
-
+struct clique;
+struct product;
 struct vector_node {
 	void *value;
 };
 
-// Ενα Vector είναι pointer σε αυτό το struct
 struct vector {
 	struct vector_node *array;
 	int size;
@@ -19,9 +18,14 @@ struct vector {
 
 struct vector* vector_init(int size, DeleteValueFunction delete_val);
 
-int vector_get_size(struct vector *v);
-void insertArray(Array *a, char *temp);
+int vector_size(struct vector *v);
 
-void initArray_2(Array *a, int initialSize,struct clique *temp);
+void* vector_get(struct vector* vec, int pos);
 
-void insertArray_2(Array *a, struct clique *temp) ;
+void vector_set(struct vector* vec, int pos, void *value);
+void vector_push_back(struct vector* vec, void *value);
+void vector_delete(struct vector *vec);
+
+int vector_search_clique(struct vector *vec, struct clique *address);
+
+int vector_search_product(struct vector *vec, struct product *address);
