@@ -1,6 +1,5 @@
-#include "acutest.h"
-
 #include "../include/list.h"
+#include "../include/acutest.h"
 
 void test_init(void) {
 	struct list *list = list_init(NULL, NULL);
@@ -17,12 +16,10 @@ void test_init(void) {
 void test_append(void) {
 	struct list *list = list_init(NULL, NULL);
 	
-	// Θα προσθέτουμε, μέσω της insert, δείκτες ως προς τα στοιχεία του π΄ίνακα
 	int N = 500;
 	int *array = malloc(N * sizeof(*array));					
 
 	for (int i = 0; i < N; i++) {
-		// LIST_BOF για εισαγωγή στην αρχή
 		list_append(list, &array[i]);
 		
 		/* Check if the size of the list is incremented */
@@ -34,10 +31,6 @@ void test_append(void) {
 	list_delete(list);
 	free(array);
 }
-
-// int compare_int(void *a, void *b) {
-// 	return *(int*)a - *(int*)b;
-// }
 
 void test_find(void) {
 	struct list *list = list_init(compare_int, NULL);

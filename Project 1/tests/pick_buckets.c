@@ -88,8 +88,6 @@ void read_data_files2(void)
 
     int variable=read_data_files(map,10,argv);
 
-    //printf("Variable is %d and position is %d \n",variable,pos);
-
     TEST_ASSERT(variable == 1); //1 for executing correct path
 
     //next test that it was hashed properly 

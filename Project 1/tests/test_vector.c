@@ -1,4 +1,4 @@
-#include "acutest.h"			// Απλή βιβλιοθήκη για unit testing
+#include "../include/acutest.h"
 #include "../include/vector.h"
 
 void test_init(void) {

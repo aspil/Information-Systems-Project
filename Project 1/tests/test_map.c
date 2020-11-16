@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "acutest.h"
+#include "../include/acutest.h"
 #include "../include/map.h"
 
 
@@ -20,7 +20,6 @@ int* create_int(int value) {
 	return p;
 }
 
-// Βοηθητική συνάρτηση, κάνει insert και ελέγχει αν έγινε η εισαγωγή
 void insert_and_test(struct hash_map *map, void *key, void *value) {
 	map_insert(map, key, value);
 	TEST_ASSERT(map_find(map, key) == value);
@@ -82,5 +81,5 @@ TEST_LIST = {
 	{ "map_insert", test_insert },
 	{ "map_find", 	test_find },
 
-	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
+	{ NULL, NULL }
 }; 
