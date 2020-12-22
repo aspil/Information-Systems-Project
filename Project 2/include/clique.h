@@ -40,3 +40,7 @@ void delete_clique(void *c);
 
 /* Adds a spec to the list of a clique's first product */
 void push_specs(struct clique *ptr, char *spec , struct vector *vec);
+
+int vector_search_clique(struct vector *vec, struct clique *address);
+
+int vector_search_product(struct vector *vec, struct product *address);

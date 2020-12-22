@@ -25,7 +25,3 @@ void* vector_get(struct vector *vec, int pos);
 void vector_set(struct vector *vec, int pos, void *value);
 void vector_push_back(struct vector *vec, void *value);
 void vector_delete(struct vector *vec);
-
-int vector_search_clique(struct vector *vec, struct clique *address);
-
-int vector_search_product(struct vector *vec, struct product *address);
