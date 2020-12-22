@@ -341,3 +341,99 @@ int print_results(struct hash_map *map) {
 	return relations;
 
 }
+
+int print_negative_results(struct hash_map *map) {
+	int counter=0,relations=0;
+	struct vector *vec = NULL;
+	struct map_node *ptr;
+	struct clique **last;
+	struct product *iteration_first_product;
+	int result=0;
+
+	for (int i = 0; i < map->size; ++i)
+	{
+		ptr = map->array[i];
+
+		while (ptr != NULL) //there are things to see
+		{
+			if (counter == 0)
+			{
+				vec = vector_init(1, NULL);
+
+				vector_push_back(vec, *(struct clique**) map->array[i]->value);
+				counter++;
+				//printf("The clique consists of:\n");
+				last = (struct clique **)ptr->value;
+				iteration_first_product=(*last)->first_product;
+
+				printf("The clique consists of:\n");
+				
+				while (iteration_first_product!=NULL)
+				{
+					printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
+					iteration_first_product=iteration_first_product->next;
+				}
+
+				printf("The negative has the following members: \n");
+
+				struct negative_relation *list_ptr=(*last)->first_negative;
+
+				while (list_ptr!=NULL)
+				{
+					iteration_first_product=list_ptr->neg_rel->first_product;
+
+					while (iteration_first_product!=NULL)
+					{
+						printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
+						iteration_first_product=iteration_first_product->next;
+					}
+
+					list_ptr=list_ptr->next;
+				}
+
+			}
+			else
+			{
+				result = vector_search_clique(vec, *(struct clique**) ptr->value); //checks if the clique you want to print has already been printed 
+			}
+			if (result == -1) 
+			{
+				// you can print this clique
+				last = (struct clique **)ptr->value;
+				
+				iteration_first_product=(*last)->first_product;
+
+				printf("The clique consists of:\n");
+				
+				while (iteration_first_product!=NULL)
+				{
+					printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
+					iteration_first_product=iteration_first_product->next;
+				}
+
+				printf("The negative has the following members: \n");
+
+				struct negative_relation *list_ptr=(*last)->first_negative;
+
+				while (list_ptr!=NULL)
+				{
+					iteration_first_product=list_ptr->neg_rel->first_product;
+
+					while (iteration_first_product!=NULL)
+					{
+						printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
+						iteration_first_product=iteration_first_product->next;
+					}
+					printf("end\n");
+					list_ptr=list_ptr->next;
+				}
+				
+				vector_push_back(vec,*(struct clique**) last);  
+			}
+		   ptr=ptr->next;      //check the next bucket
+		}	
+	} 
+	vector_delete(vec);  
+	return relations;
+
+}

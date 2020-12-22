@@ -19,3 +19,5 @@ void construct_product(struct clique **ptr,char *path,char *id, char *site);
 void get_line_without_end_line(char *str);
 
 int print_results(struct hash_map *map);
+
+int print_negative_results(struct hash_map *map);
