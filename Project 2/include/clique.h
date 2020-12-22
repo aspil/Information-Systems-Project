@@ -44,3 +44,5 @@ void push_specs(struct clique *ptr, char *spec , struct vector *vec);
 int vector_search_clique(struct vector *vec, struct clique *address);
 
 int vector_search_product(struct vector *vec, struct product *address);
+
+int search_and_change(char *first_id,char *second_id,struct hash_map *map);

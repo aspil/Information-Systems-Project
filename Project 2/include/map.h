@@ -38,6 +38,5 @@ unsigned int hash_str(void *key);
 
 int compare_int(void *a, void *b);
 int compare_str(void *a, void *b);
-int search_and_change(char *first_id,char *second_id,struct hash_map *map);
 
 void map_print(struct hash_map *map);
