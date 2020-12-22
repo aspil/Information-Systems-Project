@@ -12,9 +12,8 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 {
 	struct dirent *pDirent;
 	char *subdir, *path_to_file;
-	struct clique *new_clique;
+	struct clique **new_clique;
 	DIR *pDir;
-
 	pDir = opendir(path); //anoigma tou path
 	if (pDir == NULL) 
 	{
@@ -28,7 +27,7 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 		{
 			if (pDirent->d_type  ==  DT_DIR) {
 
-				subdir = calloc(strlen(path) + 2 + strlen(pDirent->d_name),sizeof(char));
+				subdir = calloc(strlen(path) + 2 + strlen(pDirent->d_name), sizeof(char));
 				/* Construct the path to the subdirectory */
 				strcat(subdir,path);
 				if (path[strlen(path)-1] != '/')
@@ -63,13 +62,18 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 				/* path for file */
 				path_to_file = malloc(strlen(path) + 2 + strlen(pDirent->d_name));
 				strcpy(path_to_file, path);
+				
 				if (path[strlen(path_to_file)-1] != '/')
 					strcat(path_to_file,"/");
+
 				strcat(path_to_file, pDirent->d_name);
 				/* call the function to create the product and its info */
-				construct_product(&new_clique, path_to_file, pDirent->d_name, website);
+				clique_set_first_product(new_clique, pDirent->d_name, website);
+				// parse_json(word_frequencies, new_clique, path_to_file, pDirent->d_name, website);
 				/* time for hashing */
+
 				map_insert(ptr, path_help, new_clique);
+				product_parent_clique_init(ptr,path_help);
 				free(path_to_file);
 				free(temp_path);
 			}
@@ -103,7 +107,7 @@ void read_relations(struct hash_map *map, char *path)
 				if (line[strlen(line)-2] == '1') //no reason to break into products the 0 values 
 				{
 					counter++;
-					char *temp_2=NULL;
+					char *temp_2 = NULL;
 					str = line;
 
 					while (str[0] != ',')
@@ -126,12 +130,41 @@ void read_relations(struct hash_map *map, char *path)
 					//we have both now
 					// i will hash them to find where they are so i can merge them
 
-					search_and_change(temp_1,temp_2,map);
+					search_and_change(temp_1,temp_2,map,1);
+
 					free(temp_1);
 					free(temp_2);
-					temp2=NULL;
+					// temp2 = NULL;
 				}
-					
+				else if (line[strlen(line)-2] == '0')
+				{
+					char *temp_2 = NULL;
+					str = line;
+
+					while (str[0] != ',')
+						str = str + 1;
+
+					str[0] = '\0';
+
+					temp_1 = malloc(strlen(line)+1);
+
+					strcpy(temp_1, line); // we got the first product 
+					temp2 = str + 1 ; // get the second product 
+
+					while (str[0] != ',')
+						str = str + 1;
+
+					str[0] = '\0';
+					temp_2 = malloc(strlen(temp2)+1);
+
+					strcpy(temp_2,temp2);
+
+					search_and_change(temp_1,temp_2,map,0);
+
+					free(temp_1);
+					free(temp_2);
+					// temp2 = NULL;
+				}
 			}
 		}
 		else
