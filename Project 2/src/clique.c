@@ -110,3 +110,97 @@ void push_specs(struct clique *clique, char *spec_name, struct vector *vec)
 	list_append(clique->first_product->specs, spec);
 	return;
 }
+
+int vector_search_clique(struct vector *vec, struct clique *address)
+{
+	struct clique *ptr;
+
+	for (int i = 0; i < vec->size; ++i)
+	{
+		ptr = (struct clique *) vec->array[i].value;
+		if (address->first_product == ptr->first_product)
+			return 1;
+	}
+	return -1;
+}
+
+int vector_search_product(struct vector *vec, struct product *address)
+{
+	struct product *ptr;
+
+	for (int i = 0; i < vec->size; ++i)
+	{
+		ptr = (struct product *) vec->array[i].value;
+		if (address == ptr)
+			return 1;
+	}
+	return -1;
+}
+
+int search_and_change(char *first_id, char *second_id, struct hash_map *map)
+{
+	//hash the first product to find it 
+	struct clique *c1,*c2;
+	unsigned int pos = map->hash(first_id) % map->size;
+	unsigned int pos_2 = map->hash(second_id) % map->size;
+
+	struct map_node *search=map->array[pos];
+
+	struct map_node *search_2=map->array[pos_2];
+
+
+	if (search == NULL || search_2==NULL)
+	{	
+		printf("No such product hashed\n");
+		return -1;
+	}
+	else
+	{
+		while (search!=NULL)
+		{
+			if (strcmp((char*)search->key, first_id)!=0)
+			{
+				//they are not the same , look the next 
+				search=search->next;
+			}
+			else
+			{	//you found the node u were looking for 
+
+				c1=(struct clique *)search->value;
+				break;
+
+			}
+		}
+
+		if (search==NULL)
+		{
+			printf("No such product hashed \n");
+			return -1;
+		}
+		else
+		{
+			while (search_2!=NULL)
+			{
+				if (strcmp((char*)search_2->key,second_id)!=0)
+				{
+					//they are not the same , look the next 
+					search_2=search_2->next;
+				}
+				else
+				{	//you found the node u were looking for 
+					c2=(struct clique *)search_2->value;
+					break;
+
+				}
+			}
+		}
+		if (search_2==NULL)
+		{
+			printf("No such product hashed \n");
+			return -1;
+		}
+		// you have both cliques you need to merge 
+		merge_cliques(c1,c2);
+	}
+	return 1;
+}

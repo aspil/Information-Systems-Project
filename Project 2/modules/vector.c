@@ -49,29 +49,3 @@ void vector_delete(struct vector *vec) {
 	free(vec);
 	return;
 }
-
-int vector_search_clique(struct vector *vec, struct clique *address)
-{
-	struct clique *ptr;
-
-	for (int i = 0; i < vec->size; ++i)
-	{
-		ptr = (struct clique *) vec->array[i].value;
-		if (address->first_product == ptr->first_product)
-			return 1;
-	}
-	return -1;
-}
-
-int vector_search_product(struct vector *vec, struct product *address)
-{
-	struct product *ptr;
-
-	for (int i = 0; i < vec->size; ++i)
-	{
-		ptr = (struct product *) vec->array[i].value;
-		if (address == ptr)
-			return 1;
-	}
-	return -1;
-}
