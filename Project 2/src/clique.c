@@ -163,7 +163,6 @@ void merge_cliques(struct clique **clique_1, struct clique **clique_2)
 
 }
 
-
 void negative_relation_func(struct clique **clique_1, struct clique **clique_2)
 {
 	// pass the clique 2 to clique 1 list if doesnt exist
@@ -230,24 +229,68 @@ void negative_relation_func(struct clique **clique_1, struct clique **clique_2)
 	}
 }
 
-
-struct clique* create_clique()
+struct clique** create_clique()
 {
-	struct clique *c = malloc(sizeof(struct clique));
-	c->size = 0;
-	c->first_product = NULL;
-	c->last_product = NULL;
-	return c;
+	struct clique **ret = malloc(sizeof(struct clique*));
+	*ret = malloc(sizeof(struct clique));
+	(*ret)->size = 0;
+	(*ret)->first_product = NULL;
+	(*ret)->last_product = NULL;
+	(*ret)->first_negative = NULL;
+	(*ret)->last_negative = NULL;
+	return ret;
 }
 
 void delete_clique(void *ptr) {
-	struct clique *clique = (struct clique *) ptr;
-	struct product *temp = (clique->first_product), *next = NULL;
-	while (temp != NULL) {
-		next = (temp)->next;
-		product_delete(temp);
-		temp = next;
+	struct clique **clique = (struct clique **) ptr;
+	int i=1;
+	
+	if (clique!=NULL)
+	{
+		struct product *temp = (*clique)->first_product, *next = NULL,*first_prod=(*clique)->first_product;
+
+		struct clique ***triple_ptr=first_prod->clique;
+
+		struct negative_relation *delete_ngtv=(*clique)->first_negative,*rest;
+
+		while (delete_ngtv!=NULL)
+		{
+			rest=delete_ngtv->next;
+			free(delete_ngtv);
+			delete_ngtv=rest;
+		}
+		while (temp != NULL) {
+			next = (temp)->next;
+			//printf("%d\n",i );
+			product_delete(temp,i);
+			temp = next;
+			i++;
+		}
+
+		free(**triple_ptr);
+		free(*triple_ptr);
+		*triple_ptr=NULL;
 	}
+	// else
+	// {
+	// 	counteraki++;
+	// }
+	/*if (*clique != NULL) {
+		struct product *temp = (*clique)->first_product, *next = NULL;
+
+		while (temp != NULL) {
+			next = (temp)->next;
+			product_delete(temp);
+			temp = next;
+		}
+		free(*clique);
+		*clique = NULL;
+	}
+	*/
+	/* Free the double pointer */
+	//free(clique);
+	//clique = NULL;
+	return;
 }
 
 struct spec* spec_init(char *spec_name, struct vector *vec) {
@@ -276,31 +319,40 @@ void spec_delete(void *ptr) {
 	free(spec);
 }
 
-struct product* product_init(int id, char *website, struct clique *clique)
+struct product* product_init(int id, char *website, struct clique **clique)
 {
 	struct product *p = calloc(1,sizeof(struct product));
 	p->id = id;
 	p->website = malloc(strlen(website)+1);
-	p->clique = clique;
+	p->clique = NULL;
 	strcpy(p->website, website);
 	p->specs = list_init(compare_str, spec_delete);
 	p->next = NULL;
 	return p;
 }
 
-void product_delete(struct product *p) {
-	free(p->website);
-	list_delete(p->specs);
-	free(p);
-	p = NULL;
+void product_delete(struct product *p, int counter) {
+	if (counter != 1)
+	{	
+		free(p->website);
+		list_delete(p->specs);
+		*(p->clique) = NULL;
+		free(p);
+		p = NULL;
+	}
+	else
+	{
+		free(p->website);
+		list_delete(p->specs);
+		free(p);
+		p = NULL;
+	}
 }
 
-void push_specs(struct clique *clique, char *spec_name, struct vector *vec)
-{
+void push_specs(struct clique *clique, char *spec_name, struct vector *vec) {
 	struct spec *spec = spec_init(spec_name, vec);
 
 	list_append(clique->first_product->specs, spec);
-	return;
 }
 
 int vector_search_clique(struct vector *vec, struct clique *address)

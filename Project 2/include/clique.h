@@ -21,9 +21,9 @@ struct product {
 	struct clique ***clique;	/* Pointer to the product's clique */
 };
 
-struct product* product_init(int id, char *website, struct clique *ptr);
+struct product* product_init(int id, char *website, struct clique **ptr);
 
-void product_delete(struct product *p);
+void product_delete(struct product *p, int counter);
 
 struct negative_relation {
 	struct clique *neg_rel;
@@ -38,7 +38,7 @@ struct clique {
 	struct negative_relation *last_negative;
 };
 
-struct clique * create_clique();
+struct clique** create_clique();
 
 void delete_clique(void *c);
 
