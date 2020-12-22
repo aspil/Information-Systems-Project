@@ -123,159 +123,159 @@ int pick_the_buckets(int argc,char **argv)
 }
 
 
-void construct_product(struct clique **ptr,char *path,char *id, char *site)
-{
+// void construct_product(struct clique **ptr,char *path,char *id, char *site)
+// {
 
-	struct vector *vec;
-	FILE *fp;
-	char *line = NULL,*temp_1 = NULL,*temp2 = NULL,*temp_3 = NULL;
-	size_t len = 0;
-	size_t read;
-	char *str;
-	fp = fopen (path,"r");
-	if (fp  ==  NULL)
-		printf ("Cannot open directory '%s'\n", path);
+// 	struct vector *vec;
+// 	FILE *fp;
+// 	char *line = NULL,*temp_1 = NULL,*temp2 = NULL,*temp_3 = NULL;
+// 	size_t len = 0;
+// 	size_t read;
+// 	char *str;
+// 	fp = fopen (path,"r");
+// 	if (fp  ==  NULL)
+// 		printf ("Cannot open directory '%s'\n", path);
 
-	strip_ext(id);	// Remove '.json' from the filename
-	// Initialazation of the product
-	struct product *p = product_init(atoi(id), site, (*ptr));
+// 	strip_ext(id);	// Remove '.json' from the filename
+// 	// Initialazation of the product
+// 	struct product *p = product_init(atoi(id), site, (*ptr));
 	
-	(*ptr)->first_product = p;
+// 	(*ptr)->first_product = p;
 
-	(*ptr)->last_product = p;
-	(*ptr)->size += 1; // Increase the size by 1
+// 	(*ptr)->last_product = p;
+// 	(*ptr)->size += 1; // Increase the size by 1
 
-	/* Begin reading the json file */
-	while ((read = getline(&line, &len, fp)) != -1) 
-	{
-		// take the line of the file
-		str = line;
-		if (line[0] != '{' && line[0] != '}') // ignore { and }
-		{
-			int i, x; // code snippet to ignore whitespaces
-			for(i = x = 0; str[i]; ++i)
-				if(!isspace(str[i]) || (i > 0 && !isspace(str[i-1])))
-				 	str[x++] = str[i];
-			str[x] = '\0';
+// 	/* Begin reading the json file */
+// 	while ((read = getline(&line, &len, fp)) != -1) 
+// 	{
+// 		// take the line of the file
+// 		str = line;
+// 		if (line[0] != '{' && line[0] != '}') // ignore { and }
+// 		{
+// 			int i, x; // code snippet to ignore whitespaces
+// 			for(i = x = 0; str[i]; ++i)
+// 				if(!isspace(str[i]) || (i > 0 && !isspace(str[i-1])))
+// 				 	str[x++] = str[i];
+// 			str[x] = '\0';
 
-			// format sequence 
-			if (str[0] == '"')
-			{
-				str = str+1;
-				if (str[0] == '<')
-					str = str+1; // important for the first spec : page title 
+// 			// format sequence 
+// 			if (str[0] == '"')
+// 			{
+// 				str = str+1;
+// 				if (str[0] == '<')
+// 					str = str+1; // important for the first spec : page title 
 			   
-				// we got rid of the first symbols
+// 				// we got rid of the first symbols
 
-				char *helping_str = str;
+// 				char *helping_str = str;
 
-				while (helping_str[0] != '"') 
-				{
-					if (helping_str[0] == '>') // code snipet for page title end
-						break;
+// 				while (helping_str[0] != '"') 
+// 				{
+// 					if (helping_str[0] == '>') // code snipet for page title end
+// 						break;
 					
-					else if (helping_str[0] == '\\') // code snipet for " that dont declare the end in this case 
-						if (helping_str[1] == '"')
-							helping_str++; 
+// 					else if (helping_str[0] == '\\') // code snipet for " that dont declare the end in this case 
+// 						if (helping_str[1] == '"')
+// 							helping_str++; 
 
-					helping_str++;
-				}
-				helping_str[0] = '\0';
+// 					helping_str++;
+// 				}
+// 				helping_str[0] = '\0';
 				
-				temp_1 = malloc(strlen(str) + 1); // the spec characteristic, free'd in util.c
-				strcpy(temp_1,str);
+// 				temp_1 = malloc(strlen(str) + 1); // the spec characteristic, free'd in util.c
+// 				strcpy(temp_1,str);
 
-				/* Find its value by passing these characters <whitespaces,:> */
-				str = strlen(str) + 2 + str;
-				while (str[0] != '"' && str[0] != '[') 
-					str = str+1;
+// 				/* Find its value by passing these characters <whitespaces,:> */
+// 				str = strlen(str) + 2 + str;
+// 				while (str[0] != '"' && str[0] != '[') 
+// 					str = str+1;
 				
-				if (str[0] == '"')
-				{
-					str = str+1;  // pass the "
+// 				if (str[0] == '"')
+// 				{
+// 					str = str+1;  // pass the "
 					
-					helping_str = str;
+// 					helping_str = str;
 
-					while (helping_str[0] != '"')
-					{
-						if (helping_str[0] == '\\')
-							if (helping_str[1] == '"') // surpass this "
-								helping_str++;
+// 					while (helping_str[0] != '"')
+// 					{
+// 						if (helping_str[0] == '\\')
+// 							if (helping_str[1] == '"') // surpass this "
+// 								helping_str++;
 
-						helping_str++;
-					}
-					helping_str[0] = '\0';
-					temp2 = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
-					strcpy(temp2,str);
-					// we have both values spec and value in temp 
-					// we can pass it
-					vec = vector_init(1, free);
-					vector_push_back(vec, temp2);
-					push_specs((*ptr), temp_1, vec);
-					vector_delete(vec);	
-				}
-				else if (str[0] == '[') /* There is a list of values that we need to store */
-				{
-					int counter = 0;
-					str = str+1;
+// 						helping_str++;
+// 					}
+// 					helping_str[0] = '\0';
+// 					temp2 = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
+// 					strcpy(temp2,str);
+// 					// we have both values spec and value in temp 
+// 					// we can pass it
+// 					vec = vector_init(1, free);
+// 					vector_push_back(vec, temp2);
+// 					push_specs((*ptr), temp_1, vec);
+// 					vector_delete(vec);	
+// 				}
+// 				else if (str[0] == '[') /* There is a list of values that we need to store */
+// 				{
+// 					int counter = 0;
+// 					str = str+1;
 
-					/* the values  will be one on each next line */
+// 					/* the values  will be one on each next line */
 
-					while ((read = getline(&line, &len, fp)) != -1)
-					{
-						str = line;
-						for(i = x = 0; str[i]; ++i)
-							if(!isspace(str[i]) || (i > 0 && !isspace(str[i-1]))) // delete the whitespaces 
-								str[x++] = str[i];
+// 					while ((read = getline(&line, &len, fp)) != -1)
+// 					{
+// 						str = line;
+// 						for(i = x = 0; str[i]; ++i)
+// 							if(!isspace(str[i]) || (i > 0 && !isspace(str[i-1]))) // delete the whitespaces 
+// 								str[x++] = str[i];
 
-						str[x] = '\0';
+// 						str[x] = '\0';
 						
-						if (str[0] == '"')
-						{
-							str = str+1;
+// 						if (str[0] == '"')
+// 						{
+// 							str = str+1;
 
-							helping_str = str;
-							while (helping_str[0] != '"')
-							{
-								if (helping_str[0] == '\\')
-									if (helping_str[1] == '"') // surpass this "
-										helping_str++;
+// 							helping_str = str;
+// 							while (helping_str[0] != '"')
+// 							{
+// 								if (helping_str[0] == '\\')
+// 									if (helping_str[1] == '"') // surpass this "
+// 										helping_str++;
 
-								helping_str++;
-							}
-							helping_str[0] = '\0';
-							counter++;
+// 								helping_str++;
+// 							}
+// 							helping_str[0] = '\0';
+// 							counter++;
 
-							if (counter == 1)
-							{
-								// Initialazation of the array
-								temp_3 = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
-								strcpy(temp_3,str);
-								vec = vector_init(1, free);
-								vector_push_back(vec, temp_3);
-							}
-							else
-							{
-								temp_3 = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
-								strcpy(temp_3,str);
-								vector_push_back(vec, temp_3);
-							}		
-						}
-						else 
-						{
-							push_specs((*ptr), temp_1, vec);
-							break;
-						}
-					}
-					vector_delete(vec);
-				}
-				free(temp_1);
-			}
-		} 
-	}
-	free(line);
-	fclose (fp);
-}
+// 							if (counter == 1)
+// 							{
+// 								// Initialazation of the array
+// 								temp_3 = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
+// 								strcpy(temp_3,str);
+// 								vec = vector_init(1, free);
+// 								vector_push_back(vec, temp_3);
+// 							}
+// 							else
+// 							{
+// 								temp_3 = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
+// 								strcpy(temp_3,str);
+// 								vector_push_back(vec, temp_3);
+// 							}		
+// 						}
+// 						else 
+// 						{
+// 							push_specs((*ptr), temp_1, vec);
+// 							break;
+// 						}
+// 					}
+// 					vector_delete(vec);
+// 				}
+// 				free(temp_1);
+// 			}
+// 		} 
+// 	}
+// 	free(line);
+// 	fclose (fp);
+// }
 
 
 int print_results(struct hash_map *map) {
