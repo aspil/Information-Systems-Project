@@ -5,7 +5,8 @@
 #include <string.h>
 #include  "../include/list.h"
 #include "../include/clique.h"
-
+#include "../include/util.h"
+#include "../include/map.h"
 
 void merge_cliques(struct clique **clique_1, struct clique **clique_2) 
 {
@@ -241,6 +242,15 @@ struct clique** create_clique()
 	return ret;
 }
 
+void clique_set_first_product(struct clique **ptr, char *id, char *site) {
+	strip_ext(id);
+	struct product *p = product_init(atoi(id), site, ptr);
+	(*ptr)->first_product = p;
+
+	(*ptr)->last_product = p;
+	(*ptr)->size += 1; // Increase the size by 1
+}
+
 void delete_clique(void *ptr) {
 	struct clique **clique = (struct clique **) ptr;
 	int i=1;
@@ -331,6 +341,13 @@ struct product* product_init(int id, char *website, struct clique **clique)
 	return p;
 }
 
+void product_parent_clique_init(struct hash_map *map, void *key) {
+	struct clique *go;
+	struct map_node *last = map_get_last_inserted_node(map, key);
+	go = *(struct clique**)(last->value);
+	go->first_product->clique = (struct clique ***) &(last->value);
+}
+
 void product_delete(struct product *p, int counter) {
 	if (counter != 1)
 	{	
@@ -381,70 +398,60 @@ int vector_search_product(struct vector *vec, struct product *address)
 	return -1;
 }
 
-int search_and_change(char *first_id, char *second_id, struct hash_map *map)
+int search_and_change(char *first_id, char *second_id, struct hash_map *map,int relation)
 {
 	//hash the first product to find it 
-	struct clique *c1,*c2;
+	struct clique **c1,**c2;
 	unsigned int pos = map->hash(first_id) % map->size;
 	unsigned int pos_2 = map->hash(second_id) % map->size;
 
-	struct map_node *search=map->array[pos];
+	struct map_node *search = map->array[pos];
 
-	struct map_node *search_2=map->array[pos_2];
+	struct map_node *search_2 = map->array[pos_2];
 
+	if (search == NULL || search_2 == NULL)
+		return printf("No such product hashed\n"), -1;
 
-	if (search == NULL || search_2==NULL)
-	{	
-		printf("No such product hashed\n");
-		return -1;
-	}
 	else
 	{
-		while (search!=NULL)
+		while (search != NULL)
 		{
-			if (strcmp((char*)search->key, first_id)!=0)
-			{
-				//they are not the same , look the next 
-				search=search->next;
-			}
+			if (strcmp((char*)search->key, first_id) != 0)
+				search = search->next;
+			
 			else
 			{	//you found the node u were looking for 
-
-				c1=(struct clique *)search->value;
+				c1 = (struct clique**) search->value;
 				break;
-
 			}
 		}
 
-		if (search==NULL)
-		{
-			printf("No such product hashed \n");
-			return -1;
-		}
+		if (search == NULL)
+			return printf("No such product hashed \n"), -1;
+		
 		else
 		{
-			while (search_2!=NULL)
+			while (search_2 != NULL)
 			{
-				if (strcmp((char*)search_2->key,second_id)!=0)
-				{
-					//they are not the same , look the next 
-					search_2=search_2->next;
-				}
+				if (strcmp((char*)search_2->key,second_id) != 0)
+					search_2 = search_2->next;	/* they are not the same , look the next */
+				
 				else
-				{	//you found the node u were looking for 
-					c2=(struct clique *)search_2->value;
+				{
+					c2 = (struct clique**) search_2->value;
 					break;
-
 				}
 			}
 		}
-		if (search_2==NULL)
-		{
-			printf("No such product hashed \n");
-			return -1;
-		}
-		// you have both cliques you need to merge 
-		merge_cliques(c1,c2);
+		if (search_2 == NULL)
+			return printf("No such product hashed\n"), -1;
+		
+		// you have both cliques you need to merge
+		if (relation==1)
+			merge_cliques(c1,c2);
+		
+		else
+			negative_relation_func(c1,c2);	/* add_negative_relation */
 	}
 	return 1;
 }

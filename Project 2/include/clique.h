@@ -23,6 +23,8 @@ struct product {
 
 struct product* product_init(int id, char *website, struct clique **ptr);
 
+void product_parent_clique_init(struct hash_map *map, void *key);
+
 void product_delete(struct product *p, int counter);
 
 struct negative_relation {
@@ -40,6 +42,8 @@ struct clique {
 
 struct clique** create_clique();
 
+void clique_set_first_product(struct clique **ptr, char *id, char *site);
+
 void delete_clique(void *c);
 
 void merge_cliques(struct clique **clique1, struct clique **clique2);
@@ -52,4 +56,4 @@ int vector_search_clique(struct vector *vec, struct clique *address);
 
 int vector_search_product(struct vector *vec, struct product *address);
 
-int search_and_change(char *first_id,char *second_id,struct hash_map *map);
+int search_and_change(char *first_id, char *second_id, struct hash_map *map, int relation);
