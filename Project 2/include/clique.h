@@ -25,20 +25,27 @@ struct product* product_init(int id, char *website, struct clique *ptr);
 
 void product_delete(struct product *p);
 
+struct negative_relation {
+	struct clique *neg_rel;
+	struct negative_relation *next;
+};
 
 struct clique {
 	int size;
 	struct product *first_product;
 	struct product *last_product;
+	struct negative_relation *first_negative;
+	struct negative_relation *last_negative;
 };
 
 struct clique * create_clique();
 
-void merge_cliques(struct clique *c1, struct clique *c2);
-
 void delete_clique(void *c);
 
-/* Adds a spec to the list of a clique's first product */
+void merge_cliques(struct clique *c1, struct clique *c2);
+
+void negative_relation_func(struct clique **clique_1, struct clique **clique_2);
+
 void push_specs(struct clique *ptr, char *spec , struct vector *vec);
 
 int vector_search_clique(struct vector *vec, struct clique *address);
