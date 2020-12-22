@@ -7,35 +7,227 @@
 #include "../include/clique.h"
 
 
-void merge_cliques(struct clique *clique_1, struct clique *clique_2) {
-	struct product *ptr_2 = clique_2->first_product;
-	struct product *ptr_1 = clique_1->first_product;
+void merge_cliques(struct clique **clique_1, struct clique **clique_2) 
+{
 
-	if (clique_1->first_product == clique_2->first_product)
+	//printf("gamw to xristo mou\n");
+	struct product *ptr_2 = (*clique_2)->first_product;
+
+	if ((*clique_1)->first_product == (*clique_2)->first_product)
 		return;
 
-	clique_1->last_product->next = clique_2->first_product;
+	(*clique_1)->last_product->next = (*clique_2)->first_product;
 	
 	/* Update their sizes */
-	clique_1->size += clique_2->size;
+	(*clique_1)->size += (*clique_2)->size;
 
-	/* For every product of the two cliques, visit their clique
-	 * and change its first and last product pointers
-	 */
-	while (ptr_2 != NULL)
+	/* Update the last product pointer of the first clique */
+	(*clique_1)->last_product = (*clique_2)->last_product;
+
+	if (((*clique_2)->first_negative != NULL) && ((*clique_1)->first_negative == NULL)) 
 	{
-		ptr_2->clique->first_product = clique_1->first_product;
-		ptr_2->clique->last_product = clique_2->last_product;
-		ptr_2->clique->size = clique_1->size;
+		(*clique_1)->first_negative = (*clique_2)->first_negative;
+		(*clique_1)->last_negative = (*clique_2)->last_negative;
+
+		//you need to change the negative relations that show clique 2 cause it will get freed 
+
+		struct negative_relation *tranverse_1 = (*clique_2)->first_negative, *tranverse_2;
+
+
+		while (tranverse_1 != NULL)
+		{
+			tranverse_2 = tranverse_1->neg_rel->first_negative;
+
+			while (tranverse_2 != NULL)
+			{
+				if (tranverse_2->neg_rel == (*clique_2))
+				{
+					tranverse_2->neg_rel = (*clique_1);
+					break;
+				}
+				tranverse_2 = tranverse_2->next;
+			}
+
+			tranverse_1 = tranverse_1->next;
+
+		}
+	}
+	else if (((*clique_2)->first_negative != NULL) && ((*clique_1)->first_negative != NULL)) 
+	{
+		
+		struct negative_relation *ngt = (*clique_2)->first_negative, *ngt_2, *found = NULL, *prev_cli, *one_more = NULL;
+		int count_clique_1 = 0, count_clique_2 = 0;
+		while (ngt != NULL)
+		{
+			ngt_2 = ngt->neg_rel->first_negative;
+
+			prev_cli = ngt_2;
+
+			while (ngt_2 != NULL)
+			{
+				if (ngt_2->neg_rel == (*clique_2))
+				{
+					found = ngt_2;
+					one_more = prev_cli;
+					count_clique_2 = 1;
+					
+				}
+				if (ngt_2->neg_rel == (*clique_1))
+				{
+					count_clique_1 = 1;
+				}
+				prev_cli = ngt_2;
+				ngt_2 = ngt_2->next;
+			}
+
+			if (count_clique_2 == 1)
+			{
+				if (count_clique_1 == 1)
+				{
+					if (found == one_more)
+					{
+						ngt->neg_rel->first_negative = found->next;
+						free(found);
+					}
+					else if (found == prev_cli)
+					{
+						ngt->neg_rel->last_negative = one_more;
+						one_more->next = found->next;
+						free(found);
+					}
+					else
+					{
+					one_more->next = found->next;
+					free(found);
+					}
+				}
+				else
+				{
+					found->neg_rel = (*clique_1);
+				}
+			}
+
+			ngt = ngt->next;
+			count_clique_1 = 0, count_clique_2 = 0;
+
+		}
+		//u should concatenate the 2 lists of negative relations and delete any double adress
+
+		(*clique_1)->last_negative->next = (*clique_2)->first_negative;
+
+		(*clique_1)->last_negative = (*clique_2)->last_negative;
+
+		struct negative_relation *tranverse_1 = (*clique_1)->first_negative, *tranverse_2, *prev;
+
+		while (tranverse_1 != NULL)
+		{
+			if (tranverse_1->next != NULL)
+			{
+				tranverse_2 = tranverse_1->next;
+				prev = tranverse_1;
+
+			}
+			else
+				break;
+			while(tranverse_2 != NULL)
+			{
+				if (tranverse_2->neg_rel == tranverse_1->neg_rel)
+				{
+					prev->next = tranverse_2->next;
+					if (tranverse_2->next == NULL)
+					{
+						(*clique_1)->last_negative = prev;
+					}
+					free(tranverse_2);
+					break;
+				}
+				prev = tranverse_2;
+				tranverse_2 = tranverse_2->next;
+
+			}
+
+			tranverse_1 = tranverse_1->next;
+		}
+		//the final result is a list with no doubles
+		//change the addresses on the other cliques that pointed to the second one
+	}
+
+	free(*clique_2);	/* Call free instead of delete_clique because we want to keep the products */
+	free(clique_2);
+	
+	while (ptr_2  !=  NULL) {
+		*(ptr_2->clique) = clique_1;
 		ptr_2 = ptr_2->next;
 	}
-	while (ptr_1 != NULL)
-	{
-		ptr_1->clique->last_product = clique_2->last_product;
-		ptr_1->clique->size = clique_1->size;
-		ptr_1 = ptr_1->next;
-	}
 	return;
+
+}
+
+
+void negative_relation_func(struct clique **clique_1, struct clique **clique_2)
+{
+	// pass the clique 2 to clique 1 list if doesnt exist
+	if ((*clique_1)->last_negative == NULL)
+	{
+		// first node of negative relation
+		(*clique_1)->first_negative = malloc(sizeof(struct negative_relation));
+ 		(*clique_1)->last_negative = (*clique_1)->first_negative;
+		(*clique_1)->last_negative->neg_rel = (*clique_2);
+		(*clique_1)->last_negative->next = NULL;
+	}
+	else	// there is already a negative relation 
+	{
+		/* Check if the negative relation is already there
+		 * for another product and if it isn't, add it */
+		struct negative_relation *tranverse = (*clique_1)->first_negative, *prev;
+		while (tranverse != NULL)
+		{
+			if (tranverse->neg_rel == (*clique_2))
+			{
+				break;
+			}
+			prev = tranverse;
+			tranverse = tranverse->next;
+		}
+
+		if (tranverse == NULL)
+		{
+			prev->next = malloc(sizeof(struct negative_relation));
+			prev->next->neg_rel = (*clique_2);
+			prev->next->next = NULL;
+			(*clique_1)->last_negative = prev->next;
+		}
+	}
+	if ((*clique_2)->last_negative == NULL)
+	{
+		// first node of negative relation
+		(*clique_2)->first_negative = malloc(sizeof(struct negative_relation));
+		(*clique_2)->last_negative = (*clique_2)->first_negative;
+		(*clique_2)->last_negative->neg_rel = (*clique_1);
+		(*clique_2)->last_negative->next = NULL;
+	}
+	else	 // there is already a negative relation 
+	{
+		/* Check if the negative relation is already there
+		 * for another product and if it isn't, add it */
+		struct negative_relation *tranverse = (*clique_2)->first_negative, *prev;
+		while (tranverse != NULL)
+		{
+			if (tranverse->neg_rel == (*clique_1))
+				break;
+			
+			prev = tranverse;
+			tranverse = tranverse->next;
+		}
+
+		if (tranverse == NULL)
+		{
+			prev->next = malloc(sizeof(struct negative_relation));
+			prev->next->neg_rel = (*clique_1);
+			prev->next->next = NULL;
+			(*clique_2)->last_negative = prev->next;	
+		}
+	}
 }
 
 

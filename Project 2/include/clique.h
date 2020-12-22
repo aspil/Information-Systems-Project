@@ -18,7 +18,7 @@ struct product {
 	char *website;
 	struct list *specs;	  	/* List of struct product specifications */
 	struct product *next; 	/* Pseudo-list of products */
-	struct clique *clique;	/* Pointer to the product's clique */
+	struct clique ***clique;	/* Pointer to the product's clique */
 };
 
 struct product* product_init(int id, char *website, struct clique *ptr);
@@ -42,7 +42,7 @@ struct clique * create_clique();
 
 void delete_clique(void *c);
 
-void merge_cliques(struct clique *c1, struct clique *c2);
+void merge_cliques(struct clique **clique1, struct clique **clique2);
 
 void negative_relation_func(struct clique **clique_1, struct clique **clique_2);
 
