@@ -17,7 +17,7 @@ struct hash_map* map_init(
 	map->array = malloc(map->size * sizeof(struct map_node*));
 	map->last_chain_bucket = malloc(map->size * sizeof(struct map_node*));
 	
-	map->next = NULL;
+	map->iterator = NULL;
 	/* Assign the function pointers */
 	map->hash = hash;
 	map->compare = comp;

@@ -39,11 +39,24 @@ void vector_push_back(struct vector *vec, void *value) {
 	vec->size++;
 	return;
 }
-void vector_delete(struct vector *vec) {
+
+void vector_remove_last(struct vector *vec) {
 	if (vec->delete_value != NULL)
-		for (int i = 0; i < vec->size; i++) {
+		vec->delete_value(vec->array[vec->size - 1].value);
+
+	vec->size--;
+
+	if (vec->capacity > vec->size * 4 && vec->capacity > 2*VECTOR_MIN_CAPACITY) {
+		vec->capacity /= 2;
+		vec->array = realloc(vec->array, vec->capacity * sizeof(*vec->array));
+	}
+}
+
+void vector_delete(void *v) {
+	struct vector *vec = (struct vector *) v;
+	if (vec->delete_value != NULL)
+		for (int i = 0; i < vec->size; i++)
 			vec->delete_value(vec->array[i].value);
-		}
 
 	free(vec->array);
 	free(vec);

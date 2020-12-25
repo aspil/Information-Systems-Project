@@ -23,5 +23,9 @@ int vector_size(struct vector *v);
 void* vector_get(struct vector *vec, int pos);
 
 void vector_set(struct vector *vec, int pos, void *value);
+
 void vector_push_back(struct vector *vec, void *value);
-void vector_delete(struct vector *vec);
+
+void vector_remove_last(struct vector *);
+
+void vector_delete(void *v);
