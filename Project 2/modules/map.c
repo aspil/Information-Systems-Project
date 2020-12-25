@@ -17,6 +17,7 @@ struct hash_map* map_init(
 	map->array = malloc(map->size * sizeof(struct map_node*));
 	map->last_chain_bucket = malloc(map->size * sizeof(struct map_node*));
 	
+	map->next = NULL;
 	/* Assign the function pointers */
 	map->hash = hash;
 	map->compare = comp;
@@ -80,6 +81,73 @@ struct map_node* map_find_node(struct hash_map *map, void *key) {
 	}
 	return NULL;
 }
+
+void* map_begin(struct hash_map *map) {
+	int i;
+
+	for (i = 0; i < map->size; ++i) {
+		if (map->array[i] != NULL)
+			break;
+	}
+	if (i == map->size)
+		return NULL;
+
+	if (i != map->size - 1) {
+		if (map->array[i]->next != NULL)
+			map->iterator = map->array[i]->next;
+		else {
+			int j;
+			for (j = i+1; i < map->size; ++j) {
+				if (map->array[j] != NULL)
+					break;
+			}
+			if (j == map->size)
+				return NULL;
+			map->iterator = map->array[j];
+		}
+		// map->next = (map->array[i]->next != NULL) ? map->array[i]->next: map->array[i+1];
+	}
+	else {
+		map->iterator = map->array[i]->next;	// No need to check for null, it's already NULL.
+	}
+	return map->array[i]->value;
+}
+
+void* map_advance(struct hash_map *map) {
+	/** If the condition is true, it means the user called the function
+	 * after looping through every value in the hash table.
+	 * One should use map_begin to reinitialize this pointer to the first element of the map.*/
+	// assert(map->next != NULL);
+	struct map_node *temp;
+	if (map->iterator == NULL)
+		return NULL;
+	
+	unsigned int pos = map->hash(map->iterator->key) % map->size;
+	if (pos != map->size-1) {
+		temp = map->iterator;
+		// map->iterator = (map->iterator != map->last_chain_bucket[pos]) ? temp->next : map->array[pos+1];
+		if (map->iterator != map->last_chain_bucket[pos]) {
+			map->iterator = temp->next;
+		}
+		else {
+			int i;
+			for (i = pos+1; i < map->size; ++i) {
+				if (map->array[i] != NULL)
+					break;
+			}
+			if (i == map->size)
+				return NULL;
+			map->iterator = map->array[i];
+		}
+		return temp->value;
+	}
+	else {
+		temp = map->iterator;
+		map->iterator = (map->iterator != map->last_chain_bucket[pos]) ? temp->next : NULL;
+		return temp->value;
+	}
+}
+
 void map_delete(struct hash_map *map) {
 	struct map_node *temp, *next;
 	for (unsigned int i = 0; i < map->size; ++i) {
@@ -104,6 +172,7 @@ void map_delete(struct hash_map *map) {
 unsigned int hash_int(void *key) {
 	return *(int*) key;
 }
+
 unsigned int hash_str(void *key) {
 	unsigned long hash = 5381;
 	for(unsigned int c = 0; c < strlen((char*)key); ++c)
@@ -115,9 +184,11 @@ unsigned int hash_str(void *key) {
 int compare_int(void *a, void *b) {
 	return *(int*)a - *(int*)b;
 }
+
 int compare_str(void *a, void *b) {
 	return strcmp((char*) a, (char*) b);
 }
+
 /* For debugging purposes only */
 // void map_print(struct hash_map *map) {
 // 	struct map_node *temp;

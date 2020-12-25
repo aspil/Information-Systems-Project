@@ -13,6 +13,7 @@ struct hash_map {
 	struct map_node **last_chain_bucket;
 	int size;
 	int total_items;
+	struct map_node *iterator;
 	HashFunction hash;
 	CompareFunction compare;;
 	DeleteKeyFunction delete_key;
@@ -29,12 +30,18 @@ struct hash_map* map_init(
 
 void map_insert(struct hash_map *map, void *key, void *value);
 
-void map_delete(struct hash_map *map);
-
 void* map_get_last_inserted_node(struct hash_map *map, void *key);
 
 void* map_find(struct hash_map *map, void *key);
+
 struct map_node* map_find_node(struct hash_map *map, void *key);
+
+void* map_begin(struct hash_map *map);
+
+void* map_advance(struct hash_map *map);
+
+void map_delete(struct hash_map *map);
+
 unsigned int hash_int(void *key);
 unsigned int hash_str(void *key);
 
