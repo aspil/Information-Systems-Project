@@ -81,45 +81,21 @@ struct map_node* map_find_node(struct hash_map *map, void *key) {
 	return NULL;
 }
 void map_delete(struct hash_map *map) {
-	struct map_node *temp, *next_x;
-	int counter = 0;
-	struct clique *node_l;
-	struct vector *vec;
-	vec = vector_init(1,NULL);
+	struct map_node *temp, *next;
 	for (unsigned int i = 0; i < map->size; ++i) {
 		temp = map->array[i];
 		while (temp != NULL) {
-			
-			if (map->delete_value != NULL) {
-				if (counter==0) {
-					node_l = (struct clique *) temp->value;
-					
-					vector_push_back(vec, node_l->first_product);
+			if (map->delete_value != NULL)
 					map->delete_value(temp->value);
-					counter++;
-				}
-				else {
-					node_l = (struct clique *) temp->value;
-
-					int result = vector_search_product(vec, node_l->first_product);
-
-					if (result==-1) {
-						vector_push_back(vec, node_l->first_product);
-						map->delete_value(temp->value);
-					}
-				}
-				free(temp->value);
-				if (map->delete_key != NULL)
-					map->delete_key(temp->key);// eq free(map->array[i]->key);
-				
-			}
-			next_x = temp->next;
+			
+			if (map->delete_key != NULL)
+				map->delete_key(temp->key);
+			
+			next = temp->next;
 			free(temp);
-
-			temp = next_x;
+			temp = next;
 		}
 	}
-	vector_delete(vec);
 	free(map->last_chain_bucket);
 	free(map->array);
 	free(map);
