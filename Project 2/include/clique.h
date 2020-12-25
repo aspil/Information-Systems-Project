@@ -3,6 +3,7 @@
 #include "types.h"
 
 struct vector;	/* Redeclare to avoid warnings because of include cycle between vector.h and clique.h */
+struct hash_map;
 
 struct spec {
 	char *name;
@@ -23,7 +24,7 @@ struct product {
 
 struct product* product_init(int id, char *website, struct clique **ptr);
 
-void product_parent_clique_init(struct hash_map *map, void *key);
+void product_set_clique(struct hash_map *map, void *key);
 
 void product_delete(struct product *p, int counter);
 

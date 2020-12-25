@@ -73,7 +73,7 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 				/* time for hashing */
 
 				map_insert(ptr, path_help, new_clique);
-				product_parent_clique_init(ptr,path_help);
+				product_set_clique(ptr,path_help);
 				free(path_to_file);
 				free(temp_path);
 			}

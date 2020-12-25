@@ -341,7 +341,7 @@ struct product* product_init(int id, char *website, struct clique **clique)
 	return p;
 }
 
-void product_parent_clique_init(struct hash_map *map, void *key) {
+void product_set_clique(struct hash_map *map, void *key) {
 	struct clique *go;
 	struct map_node *last = map_get_last_inserted_node(map, key);
 	go = *(struct clique**)(last->value);
