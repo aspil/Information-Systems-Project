@@ -12,7 +12,7 @@ struct hash_map* map_init(
 ) {
 	struct hash_map *map = malloc(sizeof(struct hash_map));
 	map->size = size;
-	map->count = 0;
+	map->total_items = 0;
 	/* Allocate memory for the two arrays */
 	map->array = malloc(map->size * sizeof(struct map_node*));
 	map->last_chain_bucket = malloc(map->size * sizeof(struct map_node*));
@@ -38,8 +38,6 @@ void map_insert(struct hash_map *map, void *key, void *value) {
 		map->array[pos] = malloc(sizeof(struct map_node));
 		map->array[pos]->key = key;
 		map->array[pos]->value = value;
-		// printf("Inserted %p %p %d %d\n", map->array[pos]->key, map->array[pos]->value, *(int*)map->array[pos]->key, *(int*)map->array[pos]->value);
-
 		map->array[pos]->next = NULL;
 		map->last_chain_bucket[pos] = map->array[pos];
 	}
@@ -48,14 +46,18 @@ void map_insert(struct hash_map *map, void *key, void *value) {
 		struct map_node *new_node = malloc(sizeof(struct map_node));
 		new_node->key = key;
 		new_node->value = value;
-		// printf("Inserted %p %p %d %d\n", new_node->key, new_node->value, *(int*)new_node->key, *(int*)new_node->value);
-
 		new_node->next = NULL;
 		/* Chain the new node */
 		map->last_chain_bucket[pos]->next = new_node;
 		/* Change the new last node pointer */
 		map->last_chain_bucket[pos] = new_node;
 	}
+	map->total_items++;
+}
+
+void* map_get_last_inserted_node(struct hash_map *map, void *key) {
+	unsigned int pos = map->hash(key) % map->size;
+	return map->last_chain_bucket[pos];
 }
 
 void* map_find(struct hash_map *map, void *key) {
@@ -140,29 +142,29 @@ int compare_int(void *a, void *b) {
 int compare_str(void *a, void *b) {
 	return strcmp((char*) a, (char*) b);
 }
-
-void map_print(struct hash_map *map) {
-	struct map_node *temp;
-	char *key;
-	struct clique *clique;
-	struct product *product;
-	for (unsigned int i = 0; i < map->size; ++i) {
-		temp = map->array[i];
-		printf("-- Hashed Position %u --\n", i);
-		while (temp != NULL) {
-			key = (char*) temp->key;
-			printf("%s\n", key);
-			clique = (struct clique*) temp->value;
-			product = clique->first_product;
-			while (product != NULL) {
-				printf("\tproduct: %s - %d\n", product->website, product->id);
-				product = product->next;
-			}
-			printf("\tclique's first product: %s - %d\n", (clique->first_product)->website, (clique->first_product)->id);
-			printf("\tclique's last product: %s - %d\n", (clique->last_product)->website, (clique->last_product)->id);
-			temp = temp->next;
-		}
-		printf("\n");
-	}
-	return;
-}
+/* For debugging purposes only */
+// void map_print(struct hash_map *map) {
+// 	struct map_node *temp;
+// 	char *key;
+// 	struct clique *clique;
+// 	struct product *product;
+// 	for (unsigned int i = 0; i < map->size; ++i) {
+// 		temp = map->array[i];
+// 		printf("-- Hashed Position %u --\n", i);
+// 		while (temp != NULL) {
+// 			key = (char*) temp->key;
+// 			printf("%s\n", key);
+// 			clique = (struct clique*) temp->value;
+// 			product = clique->first_product;
+// 			while (product != NULL) {
+// 				printf("\tproduct: %s - %d\n", product->website, product->id);
+// 				product = product->next;
+// 			}
+// 			printf("\tclique's first product: %s - %d\n", (clique->first_product)->website, (clique->first_product)->id);
+// 			printf("\tclique's last product: %s - %d\n", (clique->last_product)->website, (clique->last_product)->id);
+// 			temp = temp->next;
+// 		}
+// 		printf("\n");
+// 	}
+// 	return;
+// }
