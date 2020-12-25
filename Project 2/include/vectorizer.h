@@ -1,5 +1,7 @@
 #pragma once
 
+struct hash_map;	/* Forward declaration */
+
 struct vectorizer_elem {
 	char *file;
 	char *word;
@@ -41,3 +43,33 @@ struct vectorizer {
 struct vectorizer* vectorizer_init(int, int);
 
 void vectorizer_delete(struct vectorizer*);
+
+struct feature {
+	char *data;
+	double priority;
+};
+struct feature* feature_init(char *str, double p);
+
+void feature_delete(void *f);
+
+void vectorizer_fit_transform(struct vectorizer *vectorizer, char *path, int max_features);
+
+void vectorizer_transform(struct vectorizer *vectorizer, int max_features);
+
+void vectorizer_fit(struct vectorizer *vectorizer, char *path);
+
+double* vectorizer_get_vector(struct vectorizer *vectorizer, char *document1, char *document2);
+
+void vectorizer_construct(struct vectorizer*, char*);
+
+void word_frequencies_add_value(struct hash_map*, char*, char*);
+
+void words_idf_add_value(struct hash_map*, char*, char*);
+
+void compute_tf_values(struct vectorizer*);
+
+void compute_idf_values(struct vectorizer*);
+
+void compute_tfidf_values(struct vectorizer *vectorizer);
+
+void reduce_features(struct vectorizer *vectorizer, int max_features);
