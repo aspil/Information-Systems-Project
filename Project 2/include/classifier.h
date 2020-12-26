@@ -24,3 +24,5 @@ void read_labels(char*,char**);
 int get_label_count(char*);
 
 void train_test_split(struct LogisticRegressor*,char*,double,double);
+
+void train(struct LogisticRegressor*,char*);

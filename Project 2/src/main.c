@@ -12,6 +12,7 @@
 #include "../include/dataset_parsing.h"
 
 struct hash_map *stopwords;
+double learning_rate;
 
 int get_stopwords(char *stopwords_file) {
 	FILE *fp;

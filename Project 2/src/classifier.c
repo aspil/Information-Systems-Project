@@ -113,3 +113,52 @@ void train_test_split(struct LogisticRegressor* model, char *path, double train_
 	}
 	fclose(ptr);
 }
+void train(struct LogisticRegressor *classifier, char *labels_path) {
+	char *line = NULL, *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
+	size_t read, len = 0;
+	int label;
+	FILE *fptr;
+	if ((fptr = fopen("Datasets/train_dataset.csv", "r")) == NULL) {
+		perror("train:");
+		return;
+	}
+	// clock_t t;
+	// double time_elapsed1, time_elapsed2;
+	// double avg_time1 = 0.0, avg_time2 = 0.0;
+	while ((read = getline(&line, &len, fptr)) != -1) {
+		get_line_without_end_line(line);
+		str = line;
+
+		while (str[0] != ',')
+			str = str + 1;
+
+		str[0] = '\0';
+
+		document1 = malloc(strlen(line)+1);
+
+		strcpy(document1, line); // we got the first product
+		temp = str + 1 ; // get the second product
+
+		while (str[0] != ',')
+			str = str + 1;
+
+		str[0] = '\0';
+		document2 = malloc(strlen(temp)+1);
+		label = line[strlen(line)-1] == '1';
+		strcpy(document2,temp);
+		// printf("%s %s\n",document1,document2);
+
+		double *x = vectorizer_get_vector(classifier->vect, document1, document2);
+		
+		stochastic_gradient_descent(classifier, x, label);
+
+		free(x);
+		free(document1);
+		free(document2);
+	}
+
+	// for (int i = 0; i < classifier->n_weights; ++i) {
+	//  	printf("%f\n",classifier->weights[i]);
+	// }
+	// printf("Non zero weights: %d\n",counter);
+}
