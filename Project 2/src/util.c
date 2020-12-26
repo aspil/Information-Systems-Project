@@ -122,6 +122,199 @@ int pick_the_buckets(int argc,char **argv)
 	return number_of_buckets;
 }
 
+void parse_json(struct vectorizer *vectorizer, char *path, char *id, char *site)
+{
+	char *str,*line = NULL, *spec_title = NULL, *spec_value = NULL;
+	size_t read, len = 0;
+	FILE *fp = fopen(path,"r");
+	if (fp  ==  NULL) {
+			perror("parse_json: can't open directory");
+		exit(EXIT_FAILURE);
+	}
+
+	strip_ext(id);	// Remove '.json' from the filename
+	char *file = malloc(strlen(site) + strlen(id) + 3);
+	strcat(strcat(strcpy(file,site), "//"), id);
+
+	/* Begin reading the json file */
+	while ((read = getline(&line, &len, fp)) != -1) 
+	{
+		// take the line of the file
+		str = line;
+		if (line[0] != '{' && line[0] != '}') // ignore { and }
+		{
+			skip_whitespace(str);
+			// format sequence 
+			if (str[0] == '"')
+			{
+				/* Get the title of the spec in the current line */
+				spec_title = extract_spec_title(str);
+				free(spec_title);
+				/* Get the spec's value in the current line, or in next lines if there are multiple values */
+				spec_value = extract_spec_value(str, fp);
+				
+				char *del = " \n";
+				spec_value = preprocess_text(spec_value);
+				if (strlen(spec_value) == 1)
+					continue;
+				
+				/* Tokenize the value */
+				char *token;
+				for (token = strtok(spec_value,del); token; token = strtok(NULL, del)) {
+					if (strlen(token) > 3) {
+						if (map_find(stopwords, token) == NULL) {	/* Proceed only if the token isn't a stopword */
+							word_frequencies_add_value(vectorizer->word_frequencies, file, token);
+							if (vectorizer->words_idf != NULL) {
+								words_idf_add_value(vectorizer->words_idf, file, token);
+							}
+						}
+					}
+				}
+				free(spec_value);
+			}
+		} 
+	}
+	free(file);
+	free(line);
+	fclose(fp);
+}
+
+char* preprocess_text(char *str) {
+
+	str = strrem(str,"\\u00d7");
+	str = strrem(str,"\\u00b0");
+	str = strrem(str,"\\u00e2");
+	str = strrem(str,"\\u0080");
+	str = strrem(str,"\\u0099");
+	str = strrem(str,"\\u201d");
+	str = strrem(str,"\\u03a6");
+	str = strrem(str,"\'s");
+	for (int i = 0; i < strlen(str); ++i) {
+		
+		if ((str[i] == '(') || (str[i] == ')') || (str[i] == ':')
+		 || (str[i] == '[') || (str[i] == ']') || (str[i] == '\\')
+		 || (str[i] == '+') || (strcmp((str+i), "\\n") == 0)
+		 || (str[i] == ',') || (strcmp((str+i), "n/a")==0))
+		{
+			str[i] = ' ';
+		}
+		str[i] = tolower(str[i]);
+	}
+	if (str[strlen(str)-1] == '.')
+		str[strlen(str)-1] = '\0';
+	return str;
+}
+
+char *strrem(char *str, const char *sub) {
+    size_t len = strlen(sub);
+    if (len > 0) {
+        char *p = str;
+        while ((p = strstr(p, sub)) != NULL) {
+            memmove(p, p + len, strlen(p + len) + 1);
+        }
+    }
+    return str;
+}
+
+char* extract_spec_title(char *str) {
+	str = str + 1;
+	/* Proceed to read "page title" string */
+	if (str[0] == '<')
+		str = str + 1;
+	
+	/* We got rid of the first symbols */
+	char *helping_str = str;
+
+	while (helping_str[0] != '"') 
+	{
+		if (helping_str[0] == '>') /* End of page title */
+			break;
+		
+		else if (helping_str[0] == '\\') /* Skip " symbol inside the title */
+			if (helping_str[1] == '"')
+				helping_str++; 
+
+		helping_str++;
+	}
+	helping_str[0] = '\0';
+	
+	/* Get the name of a specification */
+	char *spec_title = malloc(strlen(str) + 1);
+	strcpy(spec_title,str);
+	return spec_title;
+}
+
+char* extract_spec_value(char *str, FILE* fp) {
+	char *spec_val, *helping_str;
+	/* Find its value by passing these characters <whitespaces,:> */
+	str = strlen(str) + 2 + str;
+	while (str[0] != '"' && str[0] != '[') 
+		str = str + 1;
+	
+	if (str[0] == '"')
+	{
+		str = str + 1;  /* Skip the " symbol */
+		
+		helping_str = str;
+		
+		while (helping_str[0] != '"')
+		{
+			if (helping_str[0] == '\\')  /* Skip " symbol inside the value */
+				if (helping_str[1] == '"')
+					helping_str++;
+
+			helping_str++;
+		}
+		
+		helping_str[0] = '\0';
+		
+		spec_val = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
+		strcpy(spec_val,str);
+	}
+	else if (str[0] == '[') /* There is a list of values that we need to store */
+	{
+		int counter = 0;
+		str = str + 1;
+		size_t chars, len = 0;
+		char *line = NULL;
+		char *line_ptr = NULL;
+		// vec = vector_init(1, free);
+		while ((chars = getline(&line, &len, fp)) != -1) {
+			line_ptr = line;
+
+			skip_whitespace(line_ptr);
+
+			if (line_ptr[0] == '"') {
+				line_ptr = line_ptr + 1;
+
+				helping_str = line_ptr;
+				while (helping_str[0] != '"') {
+					if (helping_str[0] == '\\')
+						if (helping_str[1] == '"') // surpass this "
+							helping_str++;
+
+					helping_str++;
+				}
+				helping_str[0] = '\0';
+				counter++;
+
+				if (counter == 1) {
+					spec_val = malloc(strlen(line_ptr) + 1);
+					strcpy(spec_val,line_ptr);
+					
+				}
+				else {
+					spec_val = realloc(spec_val, strlen(spec_val) + strlen(line_ptr) + 2);	// Gets free'd by vector_delete
+					strcat(strcat(spec_val, " "), line_ptr);
+				}
+			}
+			else
+				break;
+		}
+		free(line);
+	}
+	return spec_val;
+}
 
 int print_results(struct hash_map *map) {
 	int counter=0,relations=0;
