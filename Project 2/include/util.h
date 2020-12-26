@@ -29,3 +29,9 @@ char* extract_spec_value(char*, FILE*);
 int print_results(struct hash_map *map);
 
 int print_negative_results(struct hash_map *map);
+
+int make_the_files(struct hash_map *map);
+
+void positive_relations_file(char *name_of_file,struct clique *clique_ptr);
+
+void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct negative_relation *ptr);

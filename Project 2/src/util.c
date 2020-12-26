@@ -487,3 +487,218 @@ int print_negative_results(struct hash_map *map) {
 	return relations;
 
 }
+
+int make_the_files(struct hash_map *map)
+{
+	int counter = 0, relations = 0;
+	struct vector *vec = NULL;
+	struct map_node *ptr;
+	struct clique **last;
+	struct product *iteration_first_product;
+	int result = 0;
+	FILE *fptr_1, *fptr_2;
+
+	char string_1[] = "positive_relations.csv";
+	char string_2[] = "negative_relations.csv";
+
+	fptr_1 = fopen(string_1, "w");
+
+	fptr_2 = fopen(string_2, "w");
+
+	fclose(fptr_1);
+	fclose(fptr_2);
+
+	for (int i = 0; i < map->size; ++i)
+	{
+		ptr = map->array[i];
+		while (ptr != NULL) //there are things to see
+		{
+			if (counter == 0)
+			{
+				vec = vector_init(1, NULL);
+
+				last = (struct clique**)map->array[i]->value;
+
+				vector_push_back(vec, *last);
+
+				counter++;
+				last = (struct clique **)ptr->value;
+				iteration_first_product = (*last)->first_product;
+
+				printf("The clique consists of:\n");
+				
+				while (iteration_first_product!=NULL)
+				{
+					if ((*last)->size > 1)
+					{
+						
+					}
+					iteration_first_product = iteration_first_product->next;
+				}
+				printf("The negative has the following members: \n");
+
+				struct negative_relation *list_ptr = (*last)->first_negative;
+				while (list_ptr != NULL)
+				{
+					iteration_first_product = list_ptr->neg_rel->first_product;
+					while (iteration_first_product != NULL)
+					{
+						printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
+						iteration_first_product = iteration_first_product->next;
+					}
+					list_ptr = list_ptr->next;
+				}
+			}
+			else
+			{
+				struct clique **sth = (struct clique**) ptr->value;
+				last = (struct clique**) ptr->value;
+				result = vector_search_clique(vec, *last); //checks if the clique you want to print has already been printed 
+			}
+			if (result == -1) 
+			{
+				last = (struct clique **)ptr->value;
+				
+				iteration_first_product = (*last)->first_product;
+
+				if ((*last)->size > 1)
+					positive_relations_file(string_1,*last);
+				
+				struct negative_relation *list_ptr = (*last)->first_negative;
+
+				if (list_ptr != NULL)
+					negative_relations_file(string_2, *last, list_ptr);
+
+				vector_push_back(vec, *(struct clique**) last);  
+			}
+		   ptr = ptr->next;      //check the next bucket
+		}
+	}
+	return 1;
+}
+
+
+void positive_relations_file(char *name_of_file,struct clique *clique_ptr)
+{
+	char temp[20];
+	FILE *ftp;
+	if ((ftp = fopen(name_of_file,"a")) == NULL)
+		printf("Couldnt open file\n");
+
+	struct product *iteration_first_product = clique_ptr->first_product, *print_product;
+	while (iteration_first_product != NULL)
+	{
+		print_product = iteration_first_product->next;
+		while (print_product != NULL)
+		{
+			fputs(iteration_first_product->website,ftp);
+			fputs("//",ftp);
+			sprintf(temp, "%d", iteration_first_product->id);
+			fputs(temp,ftp);
+			fputs(",",ftp);
+			fputs(print_product->website,ftp);
+			fputs("//",ftp);
+			sprintf(temp, "%d", print_product->id);
+			fputs(temp,ftp);
+			fputs(",",ftp);
+			fputs("1",ftp);
+    		fputs("\n", ftp);
+
+			print_product = print_product->next;
+		}
+		iteration_first_product = iteration_first_product->next;
+	}
+	fclose(ftp);
+}
+
+void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct negative_relation *ptr)
+{
+	
+	char temp[20];
+	FILE *ftp;
+	if ((ftp = fopen(name_of_file,"a")) == NULL)
+		printf("Couldnt open file\n");
+
+	if (ftp == NULL)
+		printf("Couldnt open file\n");
+
+	struct product *tranverse = clique_ptr->first_product, *iteration_product;
+
+	struct negative_relation *tranverse_neg = ptr;
+
+	struct clique *iteration;
+	while (tranverse != NULL)
+	{
+		while (tranverse_neg != NULL)
+		{
+			iteration = tranverse_neg->neg_rel;
+
+			iteration_product = iteration->first_product;
+
+			while (iteration_product != NULL)
+			{
+				fputs(tranverse->website,ftp);
+				printf("%s %d \n",tranverse->website,tranverse->id );
+				fputs("//",ftp);
+				sprintf(temp, "%d", tranverse->id);
+				fputs(temp,ftp);
+				fputs(",",ftp);
+				fputs(iteration_product->website,ftp);
+				fputs("//",ftp);
+				sprintf(temp, "%d", iteration_product->id);
+				fputs("mia grammh",ftp);
+				fputs(temp,ftp);
+				fputs(",",ftp);
+				fputs("0",ftp);
+    			fputs("\n", ftp);
+    			iteration_product = iteration_product->next;
+			}
+
+			if (tranverse->next == NULL)
+			{
+				int counter_pos = 0;
+
+				struct clique *ptr_for_clique = tranverse_neg->neg_rel;
+
+				struct negative_relation *previous_ng,*next_ng;
+
+				next_ng = ptr_for_clique->first_negative;
+
+				previous_ng = next_ng;
+				while (1)
+				{
+					if (next_ng->neg_rel == clique_ptr)
+						break;
+					
+					counter_pos++;
+					previous_ng = next_ng;
+					next_ng = next_ng->next;
+
+				}
+				if (counter_pos == 0)
+				{
+					ptr_for_clique->first_negative = next_ng->next;
+					if (next_ng->next == NULL)
+						ptr_for_clique->last_negative = NULL;
+
+					free(next_ng);
+				}
+				else if (next_ng->next == NULL)
+				{
+					ptr_for_clique->last_negative = previous_ng;
+					previous_ng->next = NULL;
+					free(next_ng);
+				}
+				else
+				{
+					previous_ng->next = next_ng->next;
+					free(next_ng);
+				}
+			}
+			tranverse_neg = tranverse_neg->next;
+		}
+		tranverse_neg = ptr;
+		tranverse = tranverse->next;
+	}
+	fclose(ftp);	
+}
