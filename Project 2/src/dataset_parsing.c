@@ -173,3 +173,66 @@ void read_relations(struct hash_map *map, char *path)
 	free(line);
 	fclose(fp);
 }
+
+void read_relations_2(struct hash_map *map, char *path,struct all_info *rr_ptr)
+{
+	// Open the csv file to take relations
+	FILE *fp;
+	int counter=0;
+	char * line = NULL, *temp_1 = NULL, *temp2 = NULL;
+	size_t len = 0;
+	size_t read;
+	char *str;
+	fp = fopen(path,"r");
+	if (fp == NULL)
+		printf("Cannot open directory '%s'\n", path);
+
+	if ((read = getline(&line, &len, fp)) != -1)
+	{
+		get_line_without_end_line(line);
+		if (strcmp(line,"left_spec_id,right_spec_id,label") == 0) //it follows the coding i want
+		{
+			while ((read = getline(&line, &len, fp)) != -1) 
+			{   
+				if (line[strlen(line)-2] == '1') //no reason to break into products the 0 values 
+				{
+					
+				}
+				else if (line[strlen(line)-2] == '0')
+				{
+					char *temp_2=NULL;
+					str = line;
+
+					while (str[0] != ',')
+						str = str + 1;
+
+					str[0] = '\0';
+
+					temp_1 = malloc(strlen(line)+1);
+
+					strcpy(temp_1, line); // we got the first product 
+					temp2 = str + 1 ; // get the second product 
+
+					while (str[0] != ',')
+						str = str + 1;
+
+					str[0] = '\0';
+					temp_2 = malloc(strlen(temp2)+1);
+
+					strcpy(temp_2,temp2);
+
+					search_and_change_2(temp_1,temp_2,map,0,rr_ptr);
+
+					free(temp_1);
+					free(temp_2);
+					temp2=NULL;
+				}	
+			}
+		}
+		else
+			printf("Parsing error: didnt find the appropriate fields \n");
+	}
+	printf("The counter is %d \n",counter );
+	free(line);
+	fclose(fp);
+}

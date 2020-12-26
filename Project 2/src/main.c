@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <dirent.h>
-
+#include <time.h>
 #include <sys/types.h>
 #include "../include/map.h"
 #include "../include/clique.h"
@@ -49,8 +49,8 @@ int get_stopwords(char *stopwords_file) {
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 
-	row = 0;
-	column = 0;
+	// row = 0;
+	// column = 0;
 	int size;
 	if ((size = pick_the_buckets(argc, argv)) <= 0)
 		return -1;
@@ -58,31 +58,31 @@ int main(int argc, char *argv[]) {
 	/* Safe assignments, error checking was done in pick_the_buckets */
 	char *data_path = argv[1];	
 	char *relations_file = argv[2];
-	learning_rate = 0.01;
-	int max_features = atoi(argv[3]);
+	// learning_rate = 0.01;
+	// int max_features = atoi(argv[3]);
 	// train_test_split(model,relations_file,0.6,0.4);
 	
 	/* Initialize the hash table */
 	struct hash_map *map = map_init(size, hash_str, compare_str, free, delete_clique);
 
 	// /* Construct the stopwords dictionary */
-	stopwords = map_init(37, hash_str, compare_str, free, NULL);
-	get_stopwords("Datasets/stopwords.txt");
+	// stopwords = map_init(37, hash_str, compare_str, free, NULL);
+	// get_stopwords("Datasets/stopwords.txt");
 
 	// printf("New hash table size: %d \n",map->size);
 	// /* Parse the json files */
 	// printf("Constructing clique relationships...\n");
 	read_data_files(map, size, data_path);
 
-	printf("Generating the word vectors...\n");
+	// printf("Generating the word vectors...\n");
 
 	//struct vectorizer *tfidf = vectorizer_init(size, 1);	// 1 means tfidf instead of bow
 	//vectorizer_fit_transform(tfidf, data_path, max_features);
 
-	printf("Initializing the logistic regression model\n");
+	// printf("Initializing the logistic regression model\n");
 	//struct LogisticRegressor *model = Logistic_Regression_Init();
 
-	printf("Split train and test datasets\n");
+	// printf("Split train and test datasets\n");
 	//train_test_split(model, relations_file, 0.6, 0.4);
 
 	// printf("Fitting the data into our model\n");
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
 	struct all_info *start=NULL;
 
-	start=malloc(sizeof(struct all_info ));
+	start=malloc(sizeof(struct all_info));
 	start->size=0;
 	start->first=NULL;
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
 
 	while (tranverse!=NULL)
 	{
-		printf("%d %d \n",tranverse->ptr_1->size,tranverse->ptr_2->size );
+		// printf("%d %d \n",tranverse->ptr_1->size,tranverse->ptr_2->size );
 		sum=sum + (tranverse->ptr_1->size * tranverse->ptr_2->size);
 		tranverse=tranverse->next;
 	}

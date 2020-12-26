@@ -1,7 +1,6 @@
 #pragma once
 #include "vector.h"
 #include "types.h"
-
 struct vector;	/* Redeclare to avoid warnings because of include cycle between vector.h and clique.h */
 struct hash_map;
 
@@ -58,3 +57,6 @@ int vector_search_clique(struct vector *vec, struct clique *address);
 int vector_search_product(struct vector *vec, struct product *address);
 
 int search_and_change(char *first_id, char *second_id, struct hash_map *map, int relation);
+
+struct all_info;
+int search_and_change_2(char *first_id, char *second_id, struct hash_map *map,int relation,struct all_info *rr_ptr);

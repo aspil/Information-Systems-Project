@@ -43,9 +43,7 @@ void get_line_without_end_line(char *str)
 
 void skip_whitespace(char *str) {
 	int i, x; // code snippet to ignore whitespaces
-	// printf("%c\n",str[0]);
 	for(i = x = 0; str[i]; ++i) {
-		// printf("%c",str[i]);
 		if(!isspace(str[i]) || (i > 0 && !isspace(str[i-1])))
 			str[x++] = str[i];
 	}
@@ -98,21 +96,21 @@ int pick_the_buckets(int argc,char **argv)
 	if (argc == 3)
 	{
 		if ((fp = fopen(argv[2],"r")) == NULL) {
-			printf("Argument error: File '%s' doesn't exist\n", argv[2]);
+			fprintf(stderr, "Argument error: File '%s' doesn't exist\n", argv[2]);
 			return -1;
 		}
 		fclose(fp);
 		number_of_buckets = count_json_files(argv[1]);
 		if (number_of_buckets <= 0)
 		{
-			printf("No data to be input\n");
+			fprintf(stderr, "No data to be input\n");
 			return -1;
 		}
 	}
 	else if (argc == 5)
 	{
 		if ((fp = fopen(argv[2],"r")) == NULL) {
-			printf("Argument error: File '%s' doesn't exist\n", argv[2]);
+			fprintf(stderr, "Argument error: File '%s' doesn't exist\n", argv[2]);
 			return -1;
 		}
 		fclose(fp);
@@ -121,26 +119,26 @@ int pick_the_buckets(int argc,char **argv)
 			ret = strtol(argv[4], &ptr, 10);
 			if (ret  ==  0)
 			{
-				printf("Argument error: false 'size' argument or zero\n");
+				fprintf(stderr, "Argument error: false 'size' argument or zero\n");
 				return -1;
 			}
 			number_of_buckets = atoi(argv[4]);
 			if (number_of_buckets <= 0)
 			{
-				printf("Argument error : 'size' argument is negative\n");
+				fprintf(stderr, "Argument error : 'size' argument is negative\n");
 				return -1;
 			}
 			return number_of_buckets; 
 		}
 		else
 		{
-			printf("No -s provided. Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
+			fprintf(stderr, "No -s provided. Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
 			return -1;
 		}
 	}
 	else
 	{
-		printf("Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
+		fprintf(stderr, "Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
 		return -1;
 	}
 	return number_of_buckets;
@@ -534,7 +532,7 @@ int make_the_files(struct hash_map *map)
 				last = (struct clique **)ptr->value;
 				iteration_first_product = (*last)->first_product;
 
-				printf("The clique consists of:\n");
+				// printf("The clique consists of:\n");
 				
 				while (iteration_first_product!=NULL)
 				{
@@ -544,7 +542,7 @@ int make_the_files(struct hash_map *map)
 					}
 					iteration_first_product = iteration_first_product->next;
 				}
-				printf("The negative has the following members: \n");
+				// printf("The negative has the following members: \n");
 
 				struct negative_relation *list_ptr = (*last)->first_negative;
 				while (list_ptr != NULL)
@@ -552,7 +550,7 @@ int make_the_files(struct hash_map *map)
 					iteration_first_product = list_ptr->neg_rel->first_product;
 					while (iteration_first_product != NULL)
 					{
-						printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
+						// printf("%s//%d \n",iteration_first_product->website, iteration_first_product->id);
 						iteration_first_product = iteration_first_product->next;
 					}
 					list_ptr = list_ptr->next;
@@ -591,7 +589,7 @@ void positive_relations_file(char *name_of_file,struct clique *clique_ptr)
 	char temp[20];
 	FILE *ftp;
 	if ((ftp = fopen(name_of_file,"a")) == NULL)
-		printf("Couldnt open file\n");
+		fprintf(stderr, "Couldnt open file\n");
 
 	struct product *iteration_first_product = clique_ptr->first_product, *print_product;
 	while (iteration_first_product != NULL)
@@ -625,10 +623,10 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 	char temp[20];
 	FILE *ftp;
 	if ((ftp = fopen(name_of_file,"a")) == NULL)
-		printf("Couldnt open file\n");
+		fprintf(stderr, "Couldnt open file\n");
 
 	if (ftp == NULL)
-		printf("Couldnt open file\n");
+		fprintf(stderr, "Couldnt open file\n");
 
 	struct product *tranverse = clique_ptr->first_product, *iteration_product;
 
@@ -646,7 +644,7 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 			while (iteration_product != NULL)
 			{
 				fputs(tranverse->website,ftp);
-				printf("%s %d \n",tranverse->website,tranverse->id );
+				// printf("%s %d \n",tranverse->website,tranverse->id );
 				fputs("//",ftp);
 				sprintf(temp, "%d", tranverse->id);
 				fputs(temp,ftp);

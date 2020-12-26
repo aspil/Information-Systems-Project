@@ -1,5 +1,20 @@
 #pragma once
 #include "../include/util.h"
+
+/* --------------------------------- */
+struct all_info {
+	int size;
+	struct list_negative *first;
+};
+
+struct clique;
+
+struct list_negative {
+	struct clique *ptr_1;
+	struct clique *ptr_2;
+	struct list_negative *next;
+};
+/* --------------------------------- */
 struct list_node {
 	void *data;
 	struct list_node *next;

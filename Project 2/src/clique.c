@@ -455,3 +455,105 @@ int search_and_change(char *first_id, char *second_id, struct hash_map *map,int 
 	}
 	return 1;
 }
+
+int search_and_change_2(char *first_id, char *second_id, struct hash_map *map, int relation, struct all_info *rr_ptr)
+{
+	//hash the first product to find it 
+	struct clique **c1,**c2;
+	unsigned int pos = map->hash(first_id) % map->size;
+	unsigned int pos_2 = map->hash(second_id) % map->size;
+
+	struct map_node *search = map->array[pos];
+
+	struct map_node *search_2 = map->array[pos_2];
+	if (search == NULL || search_2 == NULL)
+	{	
+		// return printf("No such product hashed\n"), -1;
+	}
+	else
+	{
+		while (search != NULL)
+		{
+			if (strcmp((char*)search->key, first_id) != 0)
+			{
+				//they are not the same , look the next 
+				search = search->next;
+			}
+			else
+			{	//you found the node u were looking for 
+				c1 = (struct clique**) search->value;
+				break;
+			}
+		}
+		if (search == NULL)
+			return printf("No such product hashed \n"), -1;
+		
+		else
+		{
+			while (search_2 != NULL)
+			{
+				if (strcmp((char*)search_2->key,second_id)!=0)
+				{
+					//they are not the same , look the next 
+					search_2 = search_2->next;
+				}
+				else
+				{	//you found the node u werewww.shopmania.in//1317
+					c2 = (struct clique**) search_2->value;
+					break;
+				}
+			}
+		}
+		if (search_2 == NULL)
+		{
+			return printf("No such product hashed \n"), -1;
+		}
+		// you have both cliques you need to merge	
+		//add_negative_relation	
+		int flag=0;
+
+		if (rr_ptr->size==0)
+		{
+			rr_ptr->first=malloc(sizeof(struct list_negative));
+
+			rr_ptr->size=1;
+
+			rr_ptr->first->ptr_1=*c1;
+
+			rr_ptr->first->ptr_2=*c2;
+			
+			rr_ptr->first->next=NULL;
+		}
+		else
+		{
+			struct list_negative *tranverse=rr_ptr->first,*previous;
+
+			while (tranverse!=NULL)
+			{
+				if (tranverse->ptr_1==*c1 || tranverse->ptr_1==*c2)
+				{
+					if (tranverse->ptr_2==*c1 || tranverse->ptr_2==*c2)
+					{
+						flag=1;
+						break;
+					}
+				}
+				previous=tranverse;
+				tranverse=tranverse->next;
+			}
+			if (flag==0)
+			{
+				previous->next=malloc(sizeof(struct list_negative));
+
+				rr_ptr->size++;
+
+				previous->next->ptr_1=*c1;
+
+				previous->next->next=NULL;
+
+				previous->next->ptr_2=*c2;
+			}
+		}
+	}
+	return 1;
+}
