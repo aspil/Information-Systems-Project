@@ -8,6 +8,9 @@
 #include "../include/vector.h"
 #include "../include/clique.h"
 #include "../include/dataset_parsing.h"
+#include "../include/vectorizer.h"
+
+extern struct hash_map *stopwords;
 
 void strip_ext(char *fname) {
 	char *end = fname + strlen(fname);
@@ -27,6 +30,18 @@ void get_line_without_end_line(char *str)
 
 	str[i] = '\0';
 	return;
+}
+
+void skip_whitespace(char *str) {
+	int i, x; // code snippet to ignore whitespaces
+	// printf("%c\n",str[0]);
+	for(i = x = 0; str[i]; ++i) {
+		// printf("%c",str[i]);
+		if(!isspace(str[i]) || (i > 0 && !isspace(str[i-1])))
+			str[x++] = str[i];
+	}
+	str[x] = '\0';
+	// return str;
 }
 
 int count_json_files(char *path) {

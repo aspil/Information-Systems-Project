@@ -1,22 +1,30 @@
 #pragma once
-#include "../include/map.h"
+#include <stdio.h>
 #include "../include/clique.h"
 
-/*
- * Struct: product_values
- * ----------------------
- * Remove the extension from
- * a filename.
- */
-void strip_ext(char *filename);
+struct hash_map;
 
-int count_files(char*path);
+void strip_ext(char*);
 
-int pick_the_buckets(int arg_c,char **arg_v);
+void get_line_without_end_line(char*);
 
-void construct_product(struct clique **ptr,char *path,char *id, char *site);
+void skip_whitespace(char*);
 
-void get_line_without_end_line(char *str);
+int count_files(char*);
+
+char *strrem(char*, const char*);
+
+int pick_the_buckets(int, char**);
+
+struct vectorizer;
+
+void parse_json(struct vectorizer*, char*, char*, char*);
+
+char* preprocess_text(char*);
+
+char* extract_spec_title(char*);
+
+char* extract_spec_value(char*, FILE*);
 
 int print_results(struct hash_map *map);
 
