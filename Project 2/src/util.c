@@ -12,6 +12,15 @@
 
 extern struct hash_map *stopwords;
 
+void shuffle_string_array(char* array[], int size) {
+	for (int i = 0; i < size; i++) {
+		int new_pos = i + rand() / (RAND_MAX / (size - i) + 1);
+		char* temp = array[new_pos];
+		array[new_pos] = array[i];
+		array[i] = temp;
+	}
+}
+
 void strip_ext(char *fname) {
 	char *end = fname + strlen(fname);
 	while (end > fname && *end != '.')
@@ -576,7 +585,6 @@ int make_the_files(struct hash_map *map)
 	}
 	return 1;
 }
-
 
 void positive_relations_file(char *name_of_file,struct clique *clique_ptr)
 {

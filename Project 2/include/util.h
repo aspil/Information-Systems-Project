@@ -4,6 +4,8 @@
 
 struct hash_map;
 
+void shuffle_string_array(char* array[], int size);
+
 void strip_ext(char*);
 
 void get_line_without_end_line(char*);
