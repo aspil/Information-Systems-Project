@@ -11,6 +11,40 @@
 #include "../include/list.h"
 #include "../include/dataset_parsing.h"
 
+struct hash_map *stopwords;
+
+int get_stopwords(char *stopwords_file) {
+	FILE *fp;
+	if ((fp = fopen(stopwords_file, "r")) == NULL) {
+		fprintf(stderr,"Failed to open %s", stopwords_file);
+		return -1;
+	}
+    const char *del = " ,\n\t";
+	char *word;
+    char *token = NULL, *line = NULL;
+	size_t len = 0, chars = 0;
+	while((chars = getline(&line, &len, fp)) != EOF) {
+		token = strtok(line, del);
+		if (token == NULL) {
+			fprintf(stderr, "Failed to tokenize string");
+			return -1;
+		}
+
+		word = malloc(strlen(token)+ 1);
+		strcpy(word,token);
+		map_insert(stopwords, word, word);
+
+		while ((token = strtok(NULL,del)) != NULL) {
+			word = malloc(strlen(token)+ 1);
+			strcpy(word,token);
+			map_insert(stopwords, word, word);
+		}
+    }
+	free(line);
+	fclose(fp);
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
 	int size;
 	if ((size = pick_the_buckets(argc, argv)) <= 0)
