@@ -26,3 +26,5 @@ int get_label_count(char*);
 void train_test_split(struct LogisticRegressor*,char*,double,double);
 
 void train(struct LogisticRegressor*,char*);
+
+void stochastic_gradient_descent(struct LogisticRegressor*,double*,int);

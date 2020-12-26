@@ -9,6 +9,8 @@
 #include "../include/classifier.h"
 #include "../include/vectorizer.h"
 
+extern double learning_rate;
+
 double* create_weights(int number_of_variables)
 {
 	double *array_of_weights = malloc(sizeof(double)*number_of_variables);
@@ -156,9 +158,27 @@ void train(struct LogisticRegressor *classifier, char *labels_path) {
 		free(document1);
 		free(document2);
 	}
-
 	// for (int i = 0; i < classifier->n_weights; ++i) {
 	//  	printf("%f\n",classifier->weights[i]);
 	// }
 	// printf("Non zero weights: %d\n",counter);
+}
+
+void stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_vector, int result) {
+	double sigmoid_result = 0, f;
+
+	/* Fnd the y from equation and take its sigmoid value */
+
+	f = classifier->weights[0];
+
+	for (int i = 1; i < classifier->n_weights; ++i)
+		f += x_vector[i-1] * classifier->weights[i];
+	
+	/* Now use the sigmoid function */
+	sigmoid_result = ((double) 1)/( 1 + exp(f));
+	// printf("σ(f) = %f\n",sigmoid_result);
+
+	for (int i = 1; i < classifier->n_weights; ++i)
+		if (x_vector[i] != 0)	//estimate the difference for each weight and multiply it with the learning rate
+			classifier->weights[i] = classifier->weights[i] - ((sigmoid_result-result) * x_vector[i]) * learning_rate;
 }
