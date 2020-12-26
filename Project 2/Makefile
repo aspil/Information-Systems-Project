@@ -1,7 +1,7 @@
 app:
 	gcc -c -Iinclude modules/*.c
 	gcc -c -Iinclude src/*.c
-	gcc *.o -o app
+	gcc *.o -o app -lm
 
 test_app:
 	gcc -c -g -Wall -O0 -Iinclude modules/*.c
