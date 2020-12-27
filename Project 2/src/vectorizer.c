@@ -58,7 +58,10 @@ struct feature* feature_init(char *str, double p) {
 }
 
 int compare_features(void *f1, void *f2) {
-	return (double)((struct feature*)f1)->priority > (double)((struct feature*)f2)->priority;
+	if ((double)((struct feature*)f1)->priority > (double)((struct feature*)f2)->priority)
+		return 1;
+	else
+		return -1;
 }
 
 void feature_delete(void *f) {
@@ -348,6 +351,7 @@ void reduce_features(struct vectorizer *vectorizer, int max_features) {
 	int column = 0;
 	for (int i = 0; i < vectorizer->max_features; ++i) {
 		struct feature *extracted = heapq_peek(heap);
+		printf("token: %s %f\n", extracted->data, extracted->priority);
 
 		// vectorizer->features1[i] = malloc(strlen(extracted->data)+1);
 		// strcpy(vectorizer->features1[i], extracted->data);
@@ -355,6 +359,7 @@ void reduce_features(struct vectorizer *vectorizer, int max_features) {
 		// /*
 		char *key = malloc(strlen(extracted->data)+1);
 		strcpy(key, extracted->data);
+
 		struct triple *t = malloc(sizeof(struct triple));
 		t->a_i = column;
 		t->b_d = 0.0;
