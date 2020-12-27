@@ -197,15 +197,23 @@ int get_label_count(char *labels_path) {
 	return n_labels;
 }
 
+
+double *min_weights;
+double min_loss;
+#include "../include/map.h"
 void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
 
 	int label;
-	previous_loss = 10000.0;
+
+	min_weights = malloc(n_labels * sizeof(double));
+	min_loss = 1000;
+	struct hash_map *unique1 = map_init(n_labels, hash_str, compare_str, NULL, NULL);
+	struct hash_map *unique2 = map_init(n_labels, hash_str, compare_str, NULL, NULL);
 	// clock_t t;
 	// double time_elapsed1, time_elapsed2;
 	// double avg_time1 = 0.0, avg_time2 = 0.0;
-	for (int i = 0; i < n_labels; ++i) {
+	for (int i = 0; i < 30000; ++i) {
 		str = labels[i];
 
 		while (str[0] != ',')
@@ -225,11 +233,18 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 		strcpy(document2,temp);
 		str++;
 		label = str[0]-'0';
+
+		if (map_find(unique1, document1) == NULL) {
+			map_insert(unique1, document1, document1);
+		}
+		if (map_find(unique2, document2) == NULL) {
+			map_insert(unique2, document2, document2);
+		}
 		double *x = vectorizer_get_vector(classifier->vect, document1, document2);
 		
 		if (stochastic_gradient_descent(classifier, x, label) < 0) {
-			printf("Mhpws kai mpei\n");
-			break;
+			// printf("Stopping at %d relations\n", i);
+			// break;
 		}
 
 		free(x);
@@ -238,12 +253,19 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	}
 	int counter = 0;
 	for (int i = 0; i < classifier->n_weights; ++i) {
+		classifier->weights[i] = min_weights[i];
 		if (classifier->weights[i] != 0)
 			counter++;
 	 	// printf("%f\n",classifier->weights[i]);
 	}
+	printf("Unique first documents: %d\n", unique1->total_items);
+	printf("Unique seconds documents: %d\n", unique2->total_items);
+
+	printf("min loss = %f\n",min_loss);
 	printf("Non zero weights: %d\n",counter);
 }
+
+
 
 int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_vector, int result) {
 	double sigmoid_result = 0, f;
@@ -260,15 +282,22 @@ int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_
 	// printf("σ(f) = %f\n",sigmoid_result);
 	double loss = -1*result*log(sigmoid_result) - (1-result) * log(1-sigmoid_result);
 	// printf("prev L = %d")
-	if (loss > previous_loss)
-		return -1;
 	
-	previous_loss = loss;
+
 	for (int i = 1; i < classifier->n_weights; ++i)
 		if (x_vector[i] != 0)	//estimate the difference for each weight and multiply it with the learning rate
 			classifier->weights[i] = classifier->weights[i] - ((sigmoid_result-result) * x_vector[i]) * learning_rate;
+	
+	// printf("loss = %f\n",loss);
+	if (loss < min_loss) {
+		min_loss = loss;
+		for (int i = 1; i < classifier->n_weights; ++i)
+			min_weights[i] = classifier->weights[i];
+	}
+	
 	return 0;
 }
+
 
 int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
@@ -312,18 +341,6 @@ int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 		sigmoid_result = ((double) 1)/( 1 + exp(f));
 		predictions[i] = (sigmoid_result > 0.5) ? 1 : 0;
 
-		// if (label == 1) {
-		// 	if (result == 1)
-		// 		classifier->true_positives++;
-		// 	else
-		// 		classifier->false_positives++;
-		// }
-		// else {
-		// 	if (result == 0)
-		// 		classifier->true_negatives++;
-		// 	else
-		// 		classifier->false_negatives++;
-		// }
 		free(x);
 		free(document1);
 		free(document2);

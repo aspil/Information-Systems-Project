@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	/* Safe assignments, error checking was done in pick_the_buckets */
 	char *data_path = argv[1];	
 	char *relations_file = argv[2];
-	learning_rate = 0.1;
+	learning_rate = 0.05;
 	int max_features = 5000;
 	// train_test_split(model,relations_file,0.6,0.4);
 
