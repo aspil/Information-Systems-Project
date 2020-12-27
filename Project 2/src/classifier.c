@@ -270,3 +270,152 @@ int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_
 	return 0;
 }
 
+int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
+	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
+
+	int label;
+	// clock_t t;
+	// double time_elapsed1, time_elapsed2;
+	// double avg_time1 = 0.0, avg_time2 = 0.0;
+	int *predictions = malloc(n_labels*sizeof(double));
+	for (int i = 0; i < n_labels; ++i) {
+		str = labels[i];
+
+		while (str[0] != ',')
+			str = str + 1;
+
+		str[0] = '\0';
+
+		document1 = malloc(strlen(labels[i])+1);
+		strcpy(document1, labels[i]); // we got the first product
+		temp = str + 1 ; // get the second product
+
+		while (str[0] != ',')
+			str = str + 1;
+
+		str[0] = '\0';
+		document2 = malloc(strlen(temp)+1);
+		strcpy(document2,temp);
+		// str++;
+		// label = str[0]-'0';
+		double *x = vectorizer_get_vector(classifier->vect, document1, document2);
+		
+		double sigmoid_result = 0, f;
+
+		/* Fnd the y from equation and take its sigmoid value */
+		f = classifier->weights[0];
+
+		for (int i = 1; i < classifier->n_weights; ++i)
+			f += x[i-1] * classifier->weights[i];
+		
+		/* Now use the sigmoid function */
+		sigmoid_result = ((double) 1)/( 1 + exp(f));
+		predictions[i] = (sigmoid_result > 0.5) ? 1 : 0;
+
+		// if (label == 1) {
+		// 	if (result == 1)
+		// 		classifier->true_positives++;
+		// 	else
+		// 		classifier->false_positives++;
+		// }
+		// else {
+		// 	if (result == 0)
+		// 		classifier->true_negatives++;
+		// 	else
+		// 		classifier->false_negatives++;
+		// }
+		free(x);
+		free(document1);
+		free(document2);
+	}
+	return predictions;
+	// printf("%d %d\n",classifier->true_positives+classifier->true_negatives+classifier->false_positives+classifier->false_negatives, n_labels);
+}
+
+double accuracy_score(int *y_true, int *y_pred, int n) {
+	int tp = 0, tn = 0, fp = 0, fn = 0;
+	
+	for (int i = 0; i < n; ++i) {
+		if (y_true[i] == 1) {
+			if (y_pred[i] == 1)
+				tp++;
+		
+			else if (y_pred[i] == 0)
+				fn++;
+		}
+		else if (y_true[i] == 0) {
+			if (y_pred[i] == 0)
+				tn++;
+			
+			else if (y_pred[i] == 1)
+				fp++;
+		}
+	}
+	return (tp+tn) / (1.0 * (tp+tn+fp+fn));
+}
+
+double precision_score(int *y_true, int *y_pred, int n) {
+	int tp = 0, tn = 0, fp = 0, fn = 0;
+	
+	for (int i = 0; i < n; ++i) {
+		if (y_true[i] == 1) {
+			if (y_pred[i] == 1)
+				tp++;
+		
+			else if (y_pred[i] == 0)
+				fn++;
+		}
+		else if (y_true[i] == 0) {
+			if (y_pred[i] == 0)
+				tn++;
+			
+			else if (y_pred[i] == 1)
+				fp++;
+		}
+	}
+	return tp / (1.0 * (tp + fp));
+}
+
+double recall_score(int *y_true, int *y_pred, int n) {
+	int tp = 0, tn = 0, fp = 0, fn = 0;
+	
+	for (int i = 0; i < n; ++i) {
+		if (y_true[i] == 1) {
+			if (y_pred[i] == 1)
+				tp++;
+		
+			else if (y_pred[i] == 0)
+				fn++;
+		}
+		else if (y_true[i] == 0) {
+			if (y_pred[i] == 0)
+				tn++;
+			
+			else if (y_pred[i] == 1)
+				fp++;
+		}
+	}
+	return tp / (1.0 * (tp + fn));
+}
+
+double f1_score(int *y_true, int *y_pred, int n) {
+	int tp = 0, tn = 0, fp = 0, fn = 0;
+	
+	for (int i = 0; i < n; ++i) {
+		if (y_true[i] == 1) {
+			if (y_pred[i] == 1)
+				tp++;
+		
+			else if (y_pred[i] == 0)
+				fn++;
+		}
+		else if (y_true[i] == 0) {
+			if (y_pred[i] == 0)
+				tn++;
+			
+			else if (y_pred[i] == 1)
+				fp++;
+		}
+	}
+	return 2*(recall_score(y_true, y_pred, n) * precision_score(y_true, y_pred, n)) / (recall_score(y_true, y_pred, n) + precision_score(y_true, y_pred, n));
+}

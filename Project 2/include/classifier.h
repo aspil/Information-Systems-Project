@@ -43,3 +43,14 @@ int get_label_count(char*);
 void train(struct LogisticRegressor *classifier, char **labels, int n_labels);
 
 int stochastic_gradient_descent(struct LogisticRegressor*,double*,int);
+
+int* test(struct LogisticRegressor *classifier, char **labels, int n_labels);
+
+double accuracy_score(int *y_true, int *y_pred, int n);
+
+double precision_score(int *y_true, int *y_pred, int n);
+
+double recall_score(int *y_true, int *y_pred, int n);
+
+double f1_score(int *y_true, int *y_pred, int n);
+

@@ -77,25 +77,32 @@ int main(int argc, char *argv[]) {
 
 	printf("Training the model...\n");
 	train(model, sets->train_set, sets->n_train_labels);
+	
+	printf("Testing the model...\n");
+	int *predictions = test(model, sets->test_set_input, sets->n_test_labels);
 
-
-	vectorizer_delete(tfidf);
-	/*
-	/* Parse the relations and change the cliques accordingly */
-	/* Print the results of the cliques */
+	printf("Accuracy: %f\n", accuracy_score(sets->test_set_labels, predictions, sets->n_test_labels));
+	printf("Precision: %f\n", precision_score(sets->test_set_labels, predictions, sets->n_test_labels));
+	printf("Recall: %f\n", recall_score(sets->test_set_labels, predictions, sets->n_test_labels));
+	printf("F1: %f\n", f1_score(sets->test_set_labels, predictions, sets->n_test_labels));
 
 	
 	/* Free the allocated memory of the hash table */
+	vectorizer_delete(tfidf);
 	map_delete(map);
 	map_delete(stopwords);
 	
 	return 0;
 }
 
+	// FILE *fp = fopen("weights.txt","w");
+	// for (int i = 0; i < model->n_weights; ++i) {
+	// 	fprintf(fp,"%f\n",model->weights[i]);
+	// 	// printf("%f\n",model->weights[i]);
+	// }
+	// fclose(fp);
 
-
-
-
+	
 
 /*
 struct all_info *start=NULL;
