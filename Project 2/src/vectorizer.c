@@ -308,7 +308,7 @@ void compute_idf_values(struct vectorizer *vectorizer) {
 void compute_tfidf_values(struct vectorizer *vectorizer) {
 	int document_words_count;
 	struct idf_elem *idf_val;
-	float idf;
+	double idf;
 	for (void *iter = map_begin(vectorizer->word_frequencies); iter != NULL; iter = map_advance(vectorizer->word_frequencies)) {
 		struct vector *vec = (struct vector*) iter;
 		document_words_count = vector_size(vec);
