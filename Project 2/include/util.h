@@ -12,6 +12,8 @@ void get_line_without_end_line(char*);
 
 void skip_whitespace(char*);
 
+int get_stopwords(char *stopwords_file);
+
 int count_files(char*);
 
 char *strrem(char*, const char*);

@@ -34,7 +34,7 @@ void strip_ext(char *fname) {
 void get_line_without_end_line(char *str)
 {
 	int i = 0;
-	while (str[i] != '\n')
+	while (str[i] != '\n' && str[i] != '\0')
 		i++;
 
 	str[i] = '\0';
@@ -49,6 +49,38 @@ void skip_whitespace(char *str) {
 	}
 	str[x] = '\0';
 	// return str;
+}
+
+int get_stopwords(char *stopwords_file) {
+	FILE *fp;
+	if ((fp = fopen(stopwords_file, "r")) == NULL) {
+		fprintf(stderr,"Failed to open %s", stopwords_file);
+		return -1;
+	}
+    const char *del = " ,\n\t";
+	char *word;
+    char *token = NULL, *line = NULL;
+	size_t len = 0, chars = 0;
+	while((chars = getline(&line, &len, fp)) != EOF) {
+		token = strtok(line, del);
+		if (token == NULL) {
+			fprintf(stderr, "Failed to tokenize string");
+			return -1;
+		}
+
+		word = malloc(strlen(token)+ 1);
+		strcpy(word,token);
+		map_insert(stopwords, word, word);
+
+		while ((token = strtok(NULL,del)) != NULL) {
+			word = malloc(strlen(token)+ 1);
+			strcpy(word,token);
+			map_insert(stopwords, word, word);
+		}
+    }
+	free(line);
+	fclose(fp);
+	return 0;
 }
 
 int count_json_files(char *path) {
@@ -505,8 +537,8 @@ int make_the_files(struct hash_map *map)
 	int result = 0;
 	FILE *fptr_1, *fptr_2;
 
-	char string_1[] = "positive_relations.csv";
-	char string_2[] = "negative_relations.csv";
+	char string_1[] = "Datasets/positive_relations.csv";
+	char string_2[] = "Datasets/negative_relations.csv";
 
 	fptr_1 = fopen(string_1, "w");
 
@@ -538,7 +570,7 @@ int make_the_files(struct hash_map *map)
 				{
 					if ((*last)->size > 1)
 					{
-						
+						positive_relations_file(string_1,*last);
 					}
 					iteration_first_product = iteration_first_product->next;
 				}
@@ -652,7 +684,6 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 				fputs(iteration_product->website,ftp);
 				fputs("//",ftp);
 				sprintf(temp, "%d", iteration_product->id);
-				fputs("mia grammh",ftp);
 				fputs(temp,ftp);
 				fputs(",",ftp);
 				fputs("0",ftp);
@@ -667,7 +698,7 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 				struct clique *ptr_for_clique = tranverse_neg->neg_rel;
 
 				struct negative_relation *previous_ng,*next_ng;
-
+				/* Get */
 				next_ng = ptr_for_clique->first_negative;
 
 				previous_ng = next_ng;
