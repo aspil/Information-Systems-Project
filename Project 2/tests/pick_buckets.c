@@ -175,8 +175,6 @@ void read_relations_1(void)
     read_relations(map,y);
 
     print_results(map);
-
-
 }
 
 

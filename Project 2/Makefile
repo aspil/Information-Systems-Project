@@ -16,7 +16,10 @@ test:
 	gcc -c -g -Wall -O0 -Iinclude modules/vector.c
 	gcc -c -g -Wall -O0 -Iinclude modules/map.c
 	gcc -c -g -Wall -O0 -Iinclude modules/list.c
-	# gcc -c -g -Wall -O0 -Iinclude src/types.c
+
+	# gcc -c -g -Wall -O0 -Iinclude src/clique.c
+	# gcc -c -g -Wall -O0 -Iinclude src/util.c
+
 	gcc -c -g -Wall -O0 -Iinclude tests/tests.c
 
 	gcc heap.o vector.o map.o list.o tests.o -o test
