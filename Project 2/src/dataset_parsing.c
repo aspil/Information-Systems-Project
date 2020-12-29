@@ -69,7 +69,6 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 				strcat(path_to_file, pDirent->d_name);
 				/* call the function to create the product and its info */
 				clique_set_first_product(new_clique, pDirent->d_name, website);
-				// parse_json(word_frequencies, new_clique, path_to_file, pDirent->d_name, website);
 				/* time for hashing */
 
 				map_insert(ptr, path_help, new_clique);
@@ -91,7 +90,7 @@ void read_relations(struct hash_map *map, char *path)
 	int counter=0;
 	char * line = NULL, *temp_1 = NULL, *temp2 = NULL;
 	size_t len = 0;
-	size_t read;
+	ssize_t read;
 	char *str;
 	fp = fopen(path,"r");
 	if (fp == NULL)
@@ -181,7 +180,7 @@ void read_relations_2(struct hash_map *map, char *path,struct all_info *rr_ptr)
 	int counter=0;
 	char * line = NULL, *temp_1 = NULL, *temp2 = NULL;
 	size_t len = 0;
-	size_t read;
+	ssize_t read;
 	char *str;
 	fp = fopen(path,"r");
 	if (fp == NULL)
@@ -221,7 +220,7 @@ void read_relations_2(struct hash_map *map, char *path,struct all_info *rr_ptr)
 
 					strcpy(temp_2,temp2);
 
-					search_and_change_2(temp_1,temp_2,map,0,rr_ptr);
+					search_and_change_2(temp_1,temp_2,map,rr_ptr);
 
 					free(temp_1);
 					free(temp_2);

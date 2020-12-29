@@ -244,7 +244,7 @@ struct clique** create_clique()
 
 void clique_set_first_product(struct clique **ptr, char *id, char *site) {
 	strip_ext(id);
-	struct product *p = product_init(atoi(id), site, ptr);
+	struct product *p = product_init(atoi(id), site);
 	(*ptr)->first_product = p;
 
 	(*ptr)->last_product = p;
@@ -329,7 +329,7 @@ void spec_delete(void *ptr) {
 	free(spec);
 }
 
-struct product* product_init(int id, char *website, struct clique **clique)
+struct product* product_init(int id, char *website)
 {
 	struct product *p = calloc(1,sizeof(struct product));
 	p->id = id;
@@ -456,7 +456,7 @@ int search_and_change(char *first_id, char *second_id, struct hash_map *map,int 
 	return 1;
 }
 
-int search_and_change_2(char *first_id, char *second_id, struct hash_map *map, int relation, struct all_info *rr_ptr)
+int search_and_change_2(char *first_id, char *second_id, struct hash_map *map, struct all_info *rr_ptr)
 {
 	//hash the first product to find it 
 	struct clique **c1,**c2;

@@ -11,7 +11,7 @@ struct map_node {
 struct hash_map {
 	struct map_node **array;
 	struct map_node **last_chain_bucket;
-	int size;
+	unsigned int size;
 	int total_items;
 	struct map_node *iterator;
 	HashFunction hash;

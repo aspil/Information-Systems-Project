@@ -21,7 +21,7 @@ struct product {
 	struct clique ***clique;	/* Pointer to the product's clique */
 };
 
-struct product* product_init(int id, char *website, struct clique **ptr);
+struct product* product_init(int id, char *website);
 
 void product_set_clique(struct hash_map *map, void *key);
 
@@ -59,4 +59,4 @@ int vector_search_product(struct vector *vec, struct product *address);
 int search_and_change(char *first_id, char *second_id, struct hash_map *map, int relation);
 
 struct all_info;
-int search_and_change_2(char *first_id, char *second_id, struct hash_map *map,int relation,struct all_info *rr_ptr);
+int search_and_change_2(char *first_id, char *second_id, struct hash_map *map, struct all_info *rr_ptr);

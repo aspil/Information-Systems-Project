@@ -12,17 +12,11 @@ void get_line_without_end_line(char*);
 
 void skip_whitespace(char*);
 
-int get_stopwords(char *stopwords_file);
-
 int count_files(char*);
 
 char *strrem(char*, const char*);
 
 int pick_the_buckets_and_features(int argc,char **argv,int* features);
-
-struct vectorizer;
-
-void parse_json(struct vectorizer*, char*, char*, char*);
 
 char* preprocess_text(char*);
 

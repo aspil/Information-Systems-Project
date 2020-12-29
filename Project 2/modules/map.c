@@ -83,7 +83,7 @@ struct map_node* map_find_node(struct hash_map *map, void *key) {
 }
 
 void* map_begin(struct hash_map *map) {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < map->size; ++i) {
 		if (map->array[i] != NULL)
@@ -96,7 +96,7 @@ void* map_begin(struct hash_map *map) {
 		if (map->array[i]->next != NULL)
 			map->iterator = map->array[i]->next;
 		else {
-			int j;
+			unsigned int j;
 			for (j = i+1; i < map->size; ++j) {
 				if (map->array[j] != NULL)
 					break;
@@ -130,7 +130,7 @@ void* map_advance(struct hash_map *map) {
 			map->iterator = temp->next;
 		}
 		else {
-			int i;
+			unsigned int i;
 			for (i = pos+1; i < map->size; ++i) {
 				if (map->array[i] != NULL)
 					break;

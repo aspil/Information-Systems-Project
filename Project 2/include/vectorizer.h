@@ -2,6 +2,8 @@
 
 struct hash_map;	/* Forward declaration */
 
+int get_stopwords(char *stopwords_file);
+
 struct vectorizer_elem {
 	char *file;
 	char *word;
@@ -73,3 +75,5 @@ void compute_idf_values(struct vectorizer*);
 void compute_tfidf_values(struct vectorizer *vectorizer);
 
 void reduce_features(struct vectorizer *vectorizer, int max_features);
+
+void parse_json(struct vectorizer*, char*, char*, char*);

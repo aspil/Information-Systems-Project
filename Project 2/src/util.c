@@ -10,8 +10,6 @@
 #include "../include/dataset_parsing.h"
 #include "../include/vectorizer.h"
 
-extern struct hash_map *stopwords;
-
 void shuffle_string_array(char* array[], int size) {
 	for (int i = 0; i < size; i++) {
 		int new_pos = i + rand() / (RAND_MAX / (size - i) + 1);
@@ -51,37 +49,7 @@ void skip_whitespace(char *str) {
 	// return str;
 }
 
-int get_stopwords(char *stopwords_file) {
-	FILE *fp;
-	if ((fp = fopen(stopwords_file, "r")) == NULL) {
-		fprintf(stderr,"Failed to open %s", stopwords_file);
-		return -1;
-	}
-    const char *del = " ,\n\t";
-	char *word;
-    char *token = NULL, *line = NULL;
-	size_t len = 0, chars = 0;
-	while((chars = getline(&line, &len, fp)) != EOF) {
-		token = strtok(line, del);
-		if (token == NULL) {
-			fprintf(stderr, "Failed to tokenize string");
-			return -1;
-		}
 
-		word = malloc(strlen(token)+ 1);
-		strcpy(word,token);
-		map_insert(stopwords, word, word);
-
-		while ((token = strtok(NULL,del)) != NULL) {
-			word = malloc(strlen(token)+ 1);
-			strcpy(word,token);
-			map_insert(stopwords, word, word);
-		}
-    }
-	free(line);
-	fclose(fp);
-	return 0;
-}
 
 int count_json_files(char *path) {
 	struct dirent *direntPtr;
@@ -206,65 +174,7 @@ int pick_the_buckets_and_features(int argc,char **argv,int* features)
         return number_of_buckets;
 }
 
-void parse_json(struct vectorizer *vectorizer, char *path, char *id, char *site)
-{
-	char *str,*line = NULL, *spec_title = NULL, *spec_value = NULL;
-	size_t read, len = 0;
-	FILE *fp = fopen(path,"r");
-	if (fp  ==  NULL) {
-			perror("parse_json: can't open directory");
-		exit(EXIT_FAILURE);
-	}
-
-	strip_ext(id);	// Remove '.json' from the filename
-	char *file = malloc(strlen(site) + strlen(id) + 3);
-	strcat(strcat(strcpy(file,site), "//"), id);
-
-	/* Begin reading the json file */
-	while ((read = getline(&line, &len, fp)) != -1) 
-	{
-		// take the line of the file
-		str = line;
-		if (line[0] != '{' && line[0] != '}') // ignore { and }
-		{
-			skip_whitespace(str);
-			// format sequence 
-			if (str[0] == '"')
-			{
-				/* Get the title of the spec in the current line */
-				spec_title = extract_spec_title(str);
-				free(spec_title);
-				/* Get the spec's value in the current line, or in next lines if there are multiple values */
-				spec_value = extract_spec_value(str, fp);
-				
-				char *del = " \n";
-				spec_value = preprocess_text(spec_value);
-				if (strlen(spec_value) == 1)
-					continue;
-				
-				/* Tokenize the value */
-				char *token;
-				for (token = strtok(spec_value,del); token; token = strtok(NULL, del)) {
-					if (strlen(token) > 3) {
-						if (map_find(stopwords, token) == NULL) {	/* Proceed only if the token isn't a stopword */
-							word_frequencies_add_value(vectorizer->word_frequencies, file, token);
-							if (vectorizer->words_idf != NULL) {
-								words_idf_add_value(vectorizer->words_idf, file, token);
-							}
-						}
-					}
-				}
-				free(spec_value);
-			}
-		} 
-	}
-	free(file);
-	free(line);
-	fclose(fp);
-}
-
 char* preprocess_text(char *str) {
-
 	str = strrem(str,"\\u00d7");
 	str = strrem(str,"\\u00b0");
 	str = strrem(str,"\\u00e2");
@@ -273,7 +183,8 @@ char* preprocess_text(char *str) {
 	str = strrem(str,"\\u201d");
 	str = strrem(str,"\\u03a6");
 	str = strrem(str,"\'s");
-	for (int i = 0; i < strlen(str); ++i) {
+
+	for (size_t i = 0; i < strlen(str); ++i) {
 		
 		if ((str[i] == '(') || (str[i] == ')') || (str[i] == ':')
 		 || (str[i] == '[') || (str[i] == ']') || (str[i] == '\\')
@@ -335,14 +246,12 @@ char* extract_spec_value(char *str, FILE* fp) {
 	while (str[0] != '"' && str[0] != '[') 
 		str = str + 1;
 	
-	if (str[0] == '"')
-	{
+	if (str[0] == '"') {
 		str = str + 1;  /* Skip the " symbol */
 		
 		helping_str = str;
 		
-		while (helping_str[0] != '"')
-		{
+		while (helping_str[0] != '"') {
 			if (helping_str[0] == '\\')  /* Skip " symbol inside the value */
 				if (helping_str[1] == '"')
 					helping_str++;
@@ -359,7 +268,8 @@ char* extract_spec_value(char *str, FILE* fp) {
 	{
 		int counter = 0;
 		str = str + 1;
-		size_t chars, len = 0;
+		size_t len = 0;
+		ssize_t chars;
 		char *line = NULL;
 		char *line_ptr = NULL;
 		while ((chars = getline(&line, &len, fp)) != -1) {
@@ -408,7 +318,7 @@ int print_results(struct hash_map *map) {
 	struct product *print_product;
 	int result=0;
 
-	for (int i = 0; i < map->size; ++i)
+	for (unsigned int i = 0; i < map->size; ++i)
 	{
 		ptr = map->array[i];
 
@@ -470,7 +380,7 @@ int print_negative_results(struct hash_map *map) {
 	struct product *iteration_first_product;
 	int result=0;
 
-	for (int i = 0; i < map->size; ++i)
+	for (unsigned int i = 0; i < map->size; ++i)
 	{
 		ptr = map->array[i];
 
@@ -577,7 +487,7 @@ int make_the_files(struct hash_map *map)
 	fclose(fptr_1);
 	fclose(fptr_2);
 
-	for (int i = 0; i < map->size; ++i)
+	for (unsigned int i = 0; i < map->size; ++i)
 	{
 		ptr = map->array[i];
 		while (ptr != NULL) //there are things to see

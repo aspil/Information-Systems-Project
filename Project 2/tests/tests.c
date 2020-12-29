@@ -304,7 +304,6 @@ void test_heap_remove(void) {
 	free(array);
 }
 
-
 void test_list_init(void) {
 	struct list *list = list_init(NULL, NULL);
 
@@ -327,7 +326,7 @@ void test_append(void) {
 		list_append(list, &array[i]);
 		
 		/* Check if the size of the list is incremented */
-		TEST_ASSERT(list_size(list) == (i + 1));	
+		TEST_ASSERT(list_size(list) == (unsigned int)(i + 1));	
 
 		/* Check if the list's last node has value equal to the one we inserted */								
 		TEST_ASSERT(list_last_value(list) == &array[i]);	

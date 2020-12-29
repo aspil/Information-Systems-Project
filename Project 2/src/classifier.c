@@ -11,10 +11,13 @@
 
 extern double learning_rate;
 double previous_loss;
+double *min_weights;
+double min_loss;
 
 int load_labels(char *positive_labels_file, char **positive_labels, char *negative_labels_file, char **negative_labels) {
 
-	size_t len = 0, read;
+	size_t len = 0;
+	ssize_t read;
 	char *line = NULL;
 	FILE *fp;
 
@@ -193,7 +196,7 @@ void Logistic_Regression_fit(struct LogisticRegressor *model, struct vectorizer 
 
 int get_label_count(char *labels_path) {
 	size_t len = 0;
-	size_t read;
+	ssize_t read;
 	char *line = NULL;
 	int n_labels = 0;
 	FILE *fp;
@@ -212,8 +215,7 @@ int get_label_count(char *labels_path) {
 }
 
 
-double *min_weights;
-double min_loss;
+
 void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
 
