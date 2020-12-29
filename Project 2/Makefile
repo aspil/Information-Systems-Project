@@ -1,31 +1,60 @@
-app:
-	gcc -c -g -Wall -Iinclude modules/*.c
-	gcc -c -g -Wall -Iinclude src/*.c 
-	gcc *.o -o app -lm
+APP_EXEC ?= app
+TEST_EXEC ?= test
+CC = gcc
+CC_FLAGS = -c -Wall -Wextra -g3
 
-test_app:
-	gcc -c -g -Wall -O0 -Iinclude modules/*.c
-	gcc -c -g -Wall -O0 -Iinclude src/util.c
-	gcc -c -g -Wall -O0 -Iinclude src/clique.c
-	gcc -c -g -Wall -O0 -Iinclude src/dataset_parsing.c
-	gcc -c -g -Wall -O0 -Iinclude tests/pick_buckets.c
+# Include files. #
+INC := -Iinclude
 
-	gcc map.o util.o list.o vector.o dataset_parsing.o clique.o pick_buckets.o -o test
-test:
-	gcc -c -g -Wall -O0 -Iinclude modules/heap.c
-	gcc -c -g -Wall -O0 -Iinclude modules/vector.c
-	gcc -c -g -Wall -O0 -Iinclude modules/map.c
-	gcc -c -g -Wall -O0 -Iinclude modules/list.c
+# Project directories. #
+SRC_DIR ?= src
+BUILD_DIR ?= build
+BIN_DIR ?= bin
+MODULE_DIR ?= modules
+UNIT_TESTING_DIR ?= tests
 
-	# gcc -c -g -Wall -O0 -Iinclude src/clique.c
-	# gcc -c -g -Wall -O0 -Iinclude src/util.c
+# Building fundamentals for the main app. #
+APP_SOURCES := $(shell find $(SRC_DIR) -type f -name *.c)
+APP_OBJECTS := $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(APP_SOURCES:.c=.o))
 
-	gcc -c -g -Wall -O0 -Iinclude tests/tests.c
+MODULES += $(shell find $(MODULE_DIR) -type f -name *.c)
+MODULES_OBJECTS += $(patsubst $(MODULE_DIR)/%, $(BUILD_DIR)/%, $(MODULES:.c=.o))
 
-	gcc heap.o vector.o map.o list.o tests.o -o test
+
+# Building fundamentals for the unit tests. #
+TEST_SOURCES := $(shell find $(UNIT_TESTING_DIR) -type f -name *.c)
+TEST_OBJECTS := $(patsubst $(UNIT_TESTING_DIR)/%, $(BUILD_DIR)/%, $(TEST_SOURCES:.c=.o))
+
+TEST_SOURCES += $(SRC_DIR)/clique.c $(SRC_DIR)/util.c $(SRC_DIR)/dataset_parsing.c
+TEST_OBJECTS += $(BUILD_DIR)/util.o $(BUILD_DIR)/clique.o $(BUILD_DIR)/dataset_parsing.o # Add some extra dependancies
+
+# Main app #
+$(APP_EXEC): $(APP_OBJECTS) $(MODULES_OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $(BIN_DIR)/$(APP_EXEC) -lm
+
+# Unit testing #
+$(TEST_EXEC): $(TEST_OBJECTS) $(MODULES_OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $(BIN_DIR)/$(TEST_EXEC)
+
+
+# Dependancies building #
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(MODULES_OBJECTS)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CC_FLAGS) $(INC) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: $(UNIT_TESTING_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CC_FLAGS) $(INC) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: $(MODULE_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CC_FLAGS) $(INC) -c -o $@ $<
+
 
 .PHONY:
 	clean
-	
+
 clean:
-	rm -rf *.o app test
+	rm -rf $(BUILD_DIR)/*.o $(BIN_DIR)/*
