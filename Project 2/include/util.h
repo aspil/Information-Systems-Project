@@ -18,7 +18,7 @@ int count_files(char*);
 
 char *strrem(char*, const char*);
 
-int pick_the_buckets(int, char**);
+int pick_the_buckets_and_features(int argc,char **argv,int* features);
 
 struct vectorizer;
 

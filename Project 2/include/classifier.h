@@ -34,6 +34,8 @@ struct LogisticRegressor {
 
 struct LogisticRegressor* Logistic_Regression_Init();
 
+void Logistic_Regression_Delete(struct LogisticRegressor* model); 
+
 void Logistic_Regression_fit(struct LogisticRegressor*,struct vectorizer*);
 
 void read_labels(char*,char**);

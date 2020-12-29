@@ -119,61 +119,91 @@ int count_json_files(char *path) {
 	return count;
 }
 
-int pick_the_buckets(int argc,char **argv)
+int pick_the_buckets_and_features(int argc,char **argv,int* features)
 {
-	int number_of_buckets;
-	long ret;
-	char *ptr;
-	FILE *fp;
-	if (argc == 3)
-	{
-		if ((fp = fopen(argv[2],"r")) == NULL) {
-			fprintf(stderr, "Argument error: File '%s' doesn't exist\n", argv[2]);
-			return -1;
-		}
+        int number_of_buckets,max_features,flag=0,flag_2=0;
+        long ret;
+        char *ptr;
+        FILE *fp;
+        int counter=0;
+
+        if ((fp = fopen(argv[2],"r")) == NULL)
+        {
+                fprintf(stderr, "Argument error: File '%s' doesn't exist\n", argv[2]);
+                return -1;
+        }
 		fclose(fp);
-		number_of_buckets = count_json_files(argv[1]);
-		if (number_of_buckets <= 0)
-		{
-			fprintf(stderr, "No data to be input\n");
-			return -1;
-		}
-	}
-	else if (argc == 5)
-	{
-		if ((fp = fopen(argv[2],"r")) == NULL) {
-			fprintf(stderr, "Argument error: File '%s' doesn't exist\n", argv[2]);
-			return -1;
-		}
-		fclose(fp);
-		if (strcmp(argv[3],"-s")  ==  0)	/* there is -s argument */
-		{
-			ret = strtol(argv[4], &ptr, 10);
-			if (ret  ==  0)
-			{
-				fprintf(stderr, "Argument error: false 'size' argument or zero\n");
-				return -1;
-			}
-			number_of_buckets = atoi(argv[4]);
-			if (number_of_buckets <= 0)
-			{
-				fprintf(stderr, "Argument error : 'size' argument is negative\n");
-				return -1;
-			}
-			return number_of_buckets; 
-		}
-		else
-		{
-			fprintf(stderr, "No -s provided. Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
-			return -1;
-		}
-	}
-	else
-	{
-		fprintf(stderr, "Correct usage: ./run <path to data> <relations csv file> [-s <n>]\n");
-		return -1;
-	}
-	return number_of_buckets;
+        if (argc >3)
+        {
+                counter=3;
+                while (counter<=argc-1)
+                {
+                        if (counter==argc-1)
+                        {
+                                printf("Invalid usage.You must provide -s or -f and then a number\n");
+                                return -1;
+                        }
+                        if (strcmp(argv[counter],"-s")==0)
+                        {
+                                flag=1;
+                                counter++;
+
+                                ret = strtol(argv[counter], &ptr, 10);
+
+                                if (ret  ==  0)
+                                {
+                                        fprintf(stderr, "Argument error: false 'size' argument or zero for hash size\n");
+                                        return -1;
+                                }
+                                number_of_buckets = atoi(argv[counter]);
+                                if (number_of_buckets <= 0)
+                                {
+                                        fprintf(stderr, "Argument error : 'size' argument is negative for hash size\n");
+                                        return -1;
+                                }
+                        }
+                        else if (strcmp(argv[counter],"-f")==0)
+                        {
+                                counter++;
+                                flag_2=1;
+                                ret = strtol(argv[counter], &ptr, 10);
+                                if (ret  ==  0)
+                                {
+                                        fprintf(stderr, "Argument error: false 'size' argument or zero for max features\n");
+                                        return -1;
+                                }
+                                max_features = atoi(argv[counter]);
+                                if (max_features <= 0)
+                                {
+                                        fprintf(stderr, "Argument error : 'size' argument is negative for max features \n");
+                                        return -1;
+                                }
+                                *features=max_features;
+                        }
+                        else
+                        {
+                                printf("Error: Wrong parameter . You should give either -f or -s \n");
+                                return -1;
+                        }
+                        counter++;
+                }
+        }
+        if (flag==0)
+        {
+                number_of_buckets = count_json_files(argv[1]);
+
+                if (number_of_buckets <= 0)
+                {
+                        fprintf(stderr, "No data to be input\n");
+                        return -1;
+                }
+        }
+        if (flag_2==0)
+        {
+                printf("You didnt give any max features so i used 5000. If you want to use your own. Use [-f number] at command line \n");
+                *features=5000;
+        }
+        return number_of_buckets;
 }
 
 void parse_json(struct vectorizer *vectorizer, char *path, char *id, char *site)
@@ -299,7 +329,7 @@ char* extract_spec_title(char *str) {
 }
 
 char* extract_spec_value(char *str, FILE* fp) {
-	char *spec_val, *helping_str;
+	char *spec_val = NULL, *helping_str;
 	/* Find its value by passing these characters <whitespaces,:> */
 	str = strlen(str) + 2 + str;
 	while (str[0] != '"' && str[0] != '[') 
@@ -332,7 +362,6 @@ char* extract_spec_value(char *str, FILE* fp) {
 		size_t chars, len = 0;
 		char *line = NULL;
 		char *line_ptr = NULL;
-		// vec = vector_init(1, free);
 		while ((chars = getline(&line, &len, fp)) != -1) {
 			line_ptr = line;
 
@@ -529,7 +558,8 @@ int print_negative_results(struct hash_map *map) {
 
 int make_the_files(struct hash_map *map)
 {
-	int counter = 0, relations = 0;
+	int counter = 0;
+	// int relations = 0;
 	struct vector *vec = NULL;
 	struct map_node *ptr;
 	struct clique **last;
@@ -590,7 +620,7 @@ int make_the_files(struct hash_map *map)
 			}
 			else
 			{
-				struct clique **sth = (struct clique**) ptr->value;
+				// struct clique **sth = (struct clique**) ptr->value;
 				last = (struct clique**) ptr->value;
 				result = vector_search_clique(vec, *last); //checks if the clique you want to print has already been printed 
 			}
@@ -613,6 +643,7 @@ int make_the_files(struct hash_map *map)
 		   ptr = ptr->next;      //check the next bucket
 		}
 	}
+	vector_delete(vec);
 	return 1;
 }
 
@@ -698,7 +729,7 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 				struct clique *ptr_for_clique = tranverse_neg->neg_rel;
 
 				struct negative_relation *previous_ng,*next_ng;
-				/* Get */
+				
 				next_ng = ptr_for_clique->first_negative;
 
 				previous_ng = next_ng;

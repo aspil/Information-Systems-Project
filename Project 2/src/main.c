@@ -16,20 +16,19 @@
 struct hash_map *stopwords;
 double learning_rate;
 
-
+void free_datasets(struct labels_sets *s);
 
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 	int size;
-	if ((size = pick_the_buckets(argc, argv)) <= 0)
+	int max_features;
+	if ((size = pick_the_buckets_and_features(argc, argv, &max_features)) <= 0)
 		return -1;
 
 	/* Safe assignments, error checking was done in pick_the_buckets */
 	char *data_path = argv[1];	
 	char *relations_file = argv[2];
-	learning_rate = 0.05;
-	int max_features = 5000;
-	// train_test_split(model,relations_file,0.6,0.4);
+	learning_rate = 0.0001;
 
 	/* Construct the stopwords dictionary */
 	stopwords = map_init(37, hash_str, compare_str, free, NULL);
@@ -40,15 +39,17 @@ int main(int argc, char *argv[]) {
 
 	/* Parse the json files */
 	printf("Constructing clique relationships...\n");
-	// read_data_files(map, size, data_path);
+	
+	read_data_files(map, size, data_path);
 
-	// read_relations(map,relations_file);
+	read_relations(map,relations_file);
 
-	// make_the_files(map);
-
+	make_the_files(map);
+	map_delete(map);
 	printf("Generating the word vectors...\n");
 	struct vectorizer *tfidf = vectorizer_init(size, 1);	// 1 means tfidf instead of bow
 	vectorizer_fit_transform(tfidf, data_path, max_features);
+
 
 	printf("Reading the binary labels...\n");
 	
@@ -70,7 +71,10 @@ int main(int argc, char *argv[]) {
 	if ((sets = train_test_split(positive_labels, n_positive_labels, negative_labels, n_negative_labels, 0.6, 0.2, 1)) == NULL)
 		exit(EXIT_FAILURE);
 	
+
+
 	printf("Initializing the logistic regression model\n");
+	
 	struct LogisticRegressor *model = Logistic_Regression_Init();
 	Logistic_Regression_fit(model, tfidf);
 	
@@ -80,21 +84,46 @@ int main(int argc, char *argv[]) {
 	
 	printf("Testing the model...\n");
 	int *predictions = test(model, sets->test_set_input, sets->n_test_labels);
-
+	// for (int i = 0; i < sets->n_test_labels; ++i) {
+	// 	printf("%d\n",predictions[i]);
+	// }
 	printf("Accuracy: %f\n", accuracy_score(sets->test_set_labels, predictions, sets->n_test_labels));
 	printf("Precision: %f\n", precision_score(sets->test_set_labels, predictions, sets->n_test_labels));
 	printf("Recall: %f\n", recall_score(sets->test_set_labels, predictions, sets->n_test_labels));
 	printf("F1: %f\n", f1_score(sets->test_set_labels, predictions, sets->n_test_labels));
 
-	
-	/* Free the allocated memory of the hash table */
+
+	Logistic_Regression_Delete(model);
+
+	/* Free the allocated memory */
+	free(predictions);
+	free_datasets(sets);
 	vectorizer_delete(tfidf);
-	map_delete(map);
+	
 	map_delete(stopwords);
 	
 	return 0;
 }
 
+void free_datasets(struct labels_sets *s) {
+	for (int i = 0; i < s->n_train_labels; ++i) {
+		free(s->train_set[i]);
+	};
+	free(s->train_set);
+
+	for (int i = 0; i < s->n_test_labels; ++i) {
+		free(s->test_set_input[i]);
+	};
+	free(s->test_set_input);
+	free(s->test_set_labels);
+
+	for (int i = 0; i < s->n_validate_labels; ++i) {
+		free(s->validate_set[i]);
+	};
+	free(s->validate_set);
+
+	free(s);
+}
 	// FILE *fp = fopen("weights.txt","w");
 	// for (int i = 0; i < model->n_weights; ++i) {
 	// 	fprintf(fp,"%f\n",model->weights[i]);

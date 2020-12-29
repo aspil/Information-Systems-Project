@@ -179,7 +179,7 @@ void negative_relation_func(struct clique **clique_1, struct clique **clique_2)
 	{
 		/* Check if the negative relation is already there
 		 * for another product and if it isn't, add it */
-		struct negative_relation *tranverse = (*clique_1)->first_negative, *prev;
+		struct negative_relation *tranverse = (*clique_1)->first_negative, *prev = NULL;
 		while (tranverse != NULL)
 		{
 			if (tranverse->neg_rel == (*clique_2))
@@ -210,7 +210,7 @@ void negative_relation_func(struct clique **clique_1, struct clique **clique_2)
 	{
 		/* Check if the negative relation is already there
 		 * for another product and if it isn't, add it */
-		struct negative_relation *tranverse = (*clique_2)->first_negative, *prev;
+		struct negative_relation *tranverse = (*clique_2)->first_negative, *prev = NULL;
 		while (tranverse != NULL)
 		{
 			if (tranverse->neg_rel == (*clique_1))
@@ -526,7 +526,7 @@ int search_and_change_2(char *first_id, char *second_id, struct hash_map *map, i
 		}
 		else
 		{
-			struct list_negative *tranverse=rr_ptr->first,*previous;
+			struct list_negative *tranverse=rr_ptr->first,*previous = NULL;
 
 			while (tranverse!=NULL)
 			{

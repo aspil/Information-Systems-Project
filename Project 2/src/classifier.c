@@ -47,6 +47,7 @@ int load_labels(char *positive_labels_file, char **positive_labels, char *negati
 		strcpy(negative_labels[label_count], line);
 		label_count++;
 	}
+	free(line);
 	fclose(fp);
 	return 0;
 }
@@ -80,7 +81,7 @@ struct labels_sets* train_test_split(
 				free(negative_labels[i]);
 			
 		}
-		else if (n_negative_labels < n_positive_labels) {	/* Sample the positive labels (1s) */
+		else {	/* (n_negative_labels <= n_positive_labels) Sample the positive labels (1s) */
 			n_samples = n_negative_labels;
 			shuffle_string_array(positive_labels, n_positive_labels);
 
@@ -115,7 +116,6 @@ struct labels_sets* train_test_split(
 			sets->train_set[i+1] = malloc(strlen(negative_labels[j])+1);
 			strcpy(sets->train_set[i+1], negative_labels[j]);
 		}
-
 		/* Now construct the test set */
 		sets->test_set_input = malloc(2 * sets->n_test_labels * sizeof(char*));
 		for (i = 0, j = sets->n_train_labels; i < 2 * sets->n_test_labels; i += 2, j++) {	/* Start after the training labels */
@@ -124,10 +124,8 @@ struct labels_sets* train_test_split(
 			
 			sets->test_set_input[i+1] = malloc(strlen(negative_labels[j])+1);
 			strcpy(sets->test_set_input[i+1], negative_labels[j]);
-
-
 		}
-
+		
 		/* Finally construct the validation set */
 		sets->validate_set = malloc(2 * sets->n_validate_labels * sizeof(char*));
 
@@ -152,6 +150,16 @@ struct labels_sets* train_test_split(
 
 		shuffle_string_array(sets->validate_set, sets->n_validate_labels);
 
+		sets->n_train_labels *= 2;
+		sets->n_test_labels *= 2;
+		sets->n_validate_labels *= 2;
+
+		for (int i = 0; i < n_samples; ++i){
+			free(positive_labels[i]);
+			free(negative_labels[i]);
+		}
+		free(positive_labels);
+		free(negative_labels);
 		return sets;
 	}
 	return NULL;
@@ -170,6 +178,11 @@ double* create_weights(int number_of_variables)
 struct LogisticRegressor* Logistic_Regression_Init() {
 	struct LogisticRegressor *model = malloc(sizeof(struct LogisticRegressor));
 	return model;
+}
+
+void Logistic_Regression_Delete(struct LogisticRegressor* model) {
+	free(model->weights);
+	free(model);
 }
 
 void Logistic_Regression_fit(struct LogisticRegressor *model, struct vectorizer *vect) {
@@ -192,7 +205,8 @@ int get_label_count(char *labels_path) {
 
 	while ((read = getline(&line, &len, fp)) != -1)
 		n_labels++;
-
+	
+	free(line);
 	fclose(fp);
 	return n_labels;
 }
@@ -200,7 +214,6 @@ int get_label_count(char *labels_path) {
 
 double *min_weights;
 double min_loss;
-#include "../include/map.h"
 void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
 
@@ -208,10 +221,10 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 
 	min_weights = malloc(classifier->n_weights * sizeof(double));
 	min_loss = 1000;
-	// clock_t t;
-	// double time_elapsed1, time_elapsed2;
-	// double avg_time1 = 0.0, avg_time2 = 0.0;
-	for (int i = 0; i < 30000; ++i) {
+	// clock_t start, end;
+	// double avg_time = 0.0;
+	for (int i = 0; i < n_labels; ++i) {
+		// start = clock();
 		str = labels[i];
 
 		while (str[0] != ',')
@@ -241,7 +254,11 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 		free(x);
 		free(document1);
 		free(document2);
+		// end = clock();
+		// avg_time += ((double) (end - start)) / CLOCKS_PER_SEC;
 	}
+	// avg_time /= n_labels;
+	// printf("Average epoch cpu time: %f\n", avg_time);
 	int counter = 0;
 	for (int i = 0; i < classifier->n_weights; ++i) {
 		classifier->weights[i] = min_weights[i];
@@ -249,17 +266,15 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 			counter++;
 	 	// printf("%f\n",classifier->weights[i]);
 	}
-
-	printf("min loss = %f\n",min_loss);
-	printf("Non zero weights: %d\n",counter);
+	free(min_weights);
+// 	printf("min loss = %.10f\n",min_loss);
+// 	printf("Non zero weights: %d\n",counter);
 }
-
-
 
 int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_vector, int result) {
 	double sigmoid_result = 0, f;
 
-	/* Fnd the y from equation and take its sigmoid value */
+	/* Find the y from equation and take its sigmoid value */
 
 	f = classifier->weights[0];
 
@@ -267,26 +282,23 @@ int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_
 		f += x_vector[i-1] * classifier->weights[i];
 	
 	/* Now use the sigmoid function */
-	sigmoid_result = ((double) 1)/( 1 + exp(f));
-	// printf("σ(f) = %f\n",sigmoid_result);
+	sigmoid_result = ((double) 1)/( 1.0 + exp(f));
 	double loss = -1*result*log(sigmoid_result) - (1-result) * log(1-sigmoid_result);
-	// printf("prev L = %d")
-	
 
-	for (int i = 1; i < classifier->n_weights; ++i)
-		if (x_vector[i-1] != 0)	//estimate the difference for each weight and multiply it with the learning rate
-			classifier->weights[i] = classifier->weights[i] - ((sigmoid_result-result) * x_vector[i-1]) * learning_rate;
+	classifier->weights[0] = classifier->weights[0] - ((sigmoid_result-result)) * learning_rate;
 	
-	// printf("loss = %f\n",loss);
+	for (int i = 1; i < classifier->n_weights; ++i) {
+		if (x_vector[i-1] != 0)	//estimate the difference for each weight and multiply it with the learning rate
+			classifier->weights[i] = classifier->weights[i] - ((sigmoid_result-result) * x_vector[i-1]) * learning_rate;	
+	}
 	if (loss < min_loss) {
 		min_loss = loss;
-		for (int i = 1; i < classifier->n_weights; ++i)
+		for (int i = 0; i < classifier->n_weights; ++i)
 			min_weights[i] = classifier->weights[i];
 	}
 	
 	return 0;
 }
-
 
 int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
@@ -327,8 +339,8 @@ int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 		
 		/* Now use the sigmoid function */
 		sigmoid_result = ((double) 1)/( 1 + exp(f));
+		// printf("test sigmoid: %f\n",sigmoid_result);
 		predictions[i] = (sigmoid_result > 0.5) ? 1 : 0;
-
 		free(x);
 		free(document1);
 		free(document2);
@@ -356,7 +368,7 @@ double accuracy_score(int *y_true, int *y_pred, int n) {
 				fp++;
 		}
 	}
-	return (tp+tn) / (1.0 * (tp+tn+fp+fn));
+	return ((tp+tn+fp+fn) != 0) ? (tp+tn) / (1.0 * (tp+tn+fp+fn)) : 0.0;
 }
 
 double precision_score(int *y_true, int *y_pred, int n) {
@@ -378,7 +390,7 @@ double precision_score(int *y_true, int *y_pred, int n) {
 				fp++;
 		}
 	}
-	return tp / (1.0 * (tp + fp));
+	return ((tp + fp) != 0.0) ? tp / (1.0 * (tp + fp)) : 0.0;
 }
 
 double recall_score(int *y_true, int *y_pred, int n) {
@@ -400,7 +412,7 @@ double recall_score(int *y_true, int *y_pred, int n) {
 				fp++;
 		}
 	}
-	return tp / (1.0 * (tp + fn));
+	return ((tp + fn) != 0) ? tp / (1.0 * (tp + fn)) : 0.0;
 }
 
 double f1_score(int *y_true, int *y_pred, int n) {
@@ -422,5 +434,7 @@ double f1_score(int *y_true, int *y_pred, int n) {
 				fp++;
 		}
 	}
-	return 2*(recall_score(y_true, y_pred, n) * precision_score(y_true, y_pred, n)) / (recall_score(y_true, y_pred, n) + precision_score(y_true, y_pred, n));
+	return ((recall_score(y_true, y_pred, n) + precision_score(y_true, y_pred, n)) != 0)
+		? 2 * (recall_score(y_true, y_pred, n) * precision_score(y_true, y_pred, n)) / (recall_score(y_true, y_pred, n) + precision_score(y_true, y_pred, n))
+		: 0.0;
 }

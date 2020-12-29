@@ -86,10 +86,8 @@ struct vectorizer* vectorizer_init(int files_count, int type) {
 
 void vectorizer_delete(struct vectorizer* v) {	
 	map_delete(v->word_frequencies);
-	// map_delete(v->features);
-	// for (int i = 0; i < v->max_features; ++i)
-	// 	free(v->features[i]);
-	// free(v->features);
+	
+	map_delete(v->features);
 
 	if (v->words_idf != NULL)
 		map_delete(v->words_idf);
@@ -333,10 +331,10 @@ void reduce_features(struct vectorizer *vectorizer, int max_features) {
 		struct idf_elem *elem = (struct idf_elem*)iter;
 		elem->average_tfidf /= vectorizer->documents_count;
 	}
+	vectorizer->max_features = max_features;
 	if (max_features > vectorizer->words_idf->total_items) {
 		vectorizer->max_features = vectorizer->words_idf->total_items;
 	}
-	vectorizer->max_features = max_features;
 	struct heapq *heap = heapq_init(compare_features, feature_delete); 	/* free will be used only on struct feature */
 
 	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL; iter = map_advance(vectorizer->words_idf)) {
@@ -344,19 +342,12 @@ void reduce_features(struct vectorizer *vectorizer, int max_features) {
 		heapq_insert(heap, feat);
 	}
 
-
-	vectorizer->features1 = malloc(vectorizer->max_features * sizeof(char*));
 	vectorizer->features = map_init(max_features, hash_str, compare_str, free, free);
 
 	int column = 0;
 	for (int i = 0; i < vectorizer->max_features; ++i) {
 		struct feature *extracted = heapq_peek(heap);
-		printf("token: %s %f\n", extracted->data, extracted->priority);
-
-		// vectorizer->features1[i] = malloc(strlen(extracted->data)+1);
-		// strcpy(vectorizer->features1[i], extracted->data);
-
-		// /*
+		
 		char *key = malloc(strlen(extracted->data)+1);
 		strcpy(key, extracted->data);
 
@@ -365,7 +356,7 @@ void reduce_features(struct vectorizer *vectorizer, int max_features) {
 		t->b_d = 0.0;
 		t->c_d = 0.0;
 		map_insert(vectorizer->features, key, t);
-		// */
+		
 
 		heapq_extract(heap);
 		free(extracted);
