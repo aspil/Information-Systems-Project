@@ -28,173 +28,204 @@ int* create_int(int value) {
 	return p;
 }
 
+void pick_the_buckets1(void)
+{
+    char **arg_v,*array[5];
 
-// void pick_the_buckets1(void)
-// {
-//     char **arg_v,*array[5];
+    array[0]="./run";
+    array[1]="./tests/example";
+    array[2]="./tests/datasetY/datasetY.csv";
+    array[3]="-s";
+    array[4]="10";
 
-//     array[0]="./run";
-//     array[1]="./tests/example";
-//     array[2]="./tests/datasetY/datasetY.csv";
-//     array[3]="-s";
-//     array[4]="10";
+    arg_v=array;
 
-//     arg_v=array;
+    int max_features,print=0;
 
-//     //i should get 10 as the size of the hashtable
+    //i should get 10 as the size of the hashtable
 
-//     int size=pick_the_buckets(5,arg_v);
+    int size=pick_the_buckets_and_features(5,arg_v,&max_features,&print);
 
-//     TEST_ASSERT(size == 10);
-
-
-// }
-// void pick_the_buckets2(void)
-// {
-//     char **arg_v,*array[5];
-
-//     array[0]="./run";
-//     array[1]="./tests/example";
-//     array[2]="./tests/datasetY/datasetY.csv";
-//     array[3]="-s";
-//     array[4]="ok";
-
-//     arg_v=array;
-
-//     //i should get 10 as the size of the hashtable
-
-//     int size=pick_the_buckets(5,arg_v);
-
-//     TEST_ASSERT(size == -1);
-// }
-
-// void pick_the_buckets3(void)
-// {
-//     char **arg_v,*array[3];
-
-//     array[0]="./run";
-//     array[1]="./tests/example";
-//     array[2]="./tests/datasetY/datasetY.csv";
-
-//     arg_v=array;
-
-//     //i should get 10 as the size of the hashtable
-
-//     int size=pick_the_buckets(3,arg_v);
-
-//     TEST_ASSERT(size == 9);
-// }
-
-// void read_data_files1(void)
-// {
-//     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
-
-//     char *argv="/random/path"; 
-
-//     int variable=read_data_files(map,10,argv);
-
-//     TEST_ASSERT(variable == -1); //-1 for random paths 
-// }
-
-// void read_data_files2(void)
-// {
-//     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
-
-//     char *argv="./tests/read_data_x"; 
-
-//     char *key="buy.net//5411";
-
-//     unsigned int pos = map->hash(key) % map->size;
-
-//     int variable=read_data_files(map,10,argv);
-
-//     TEST_ASSERT(variable == 1); //1 for executing correct path
-
-//     //next test that it was hashed properly 
-
-//     int k=strcmp(map->array[pos]->key,key);
-
-//     TEST_ASSERT(k==0);
+    TEST_ASSERT(size == 10);
 
 
-// }
+}
+void pick_the_buckets2(void)
+{
+    char **arg_v,*array[5];
 
-// void passing_clique(void)
-// {
-//     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
+    array[0]="./run";
+    array[1]="./tests/example";
+    array[2]="./tests/datasetY/datasetY.csv";
+    array[3]="-s";
+    array[4]="ok";
 
-//     char *argv="./tests/read_data_x"; 
+    int max_features,print=0;
 
-//     char *key="buy.net//5411";
+    arg_v=array;
 
-//     unsigned int pos = map->hash(key) % map->size;
+    //i should get 10 as the size of the hashtable
 
-//     int variable=read_data_files(map,10,argv);
+    int size=pick_the_buckets_and_features(5,arg_v,&max_features,&print);
 
-//     TEST_ASSERT(variable == 1); //1 for executing correct path
+    TEST_ASSERT(size == -1);
+}
 
-//     //next test that it was hashed properly 
+void pick_the_buckets3(void)
+{
+    char **arg_v,*array[3];
 
-//     int k=strcmp(map->array[pos]->key,key);
+    array[0]="./run";
+    array[1]="./tests/example";
+    array[2]="./tests/datasetY/datasetY.csv";
 
-//     TEST_ASSERT(k==0);
+    arg_v=array;
 
-//     //i need to see that the right specs were created 
+    int max_features,print=0;
+    //i should get 10 as the size of the hashtable
 
-//     struct clique *ptr= (struct clique *) map->array[pos]->value;
+    int size=pick_the_buckets_and_features(3,arg_v,&max_features,&print);
 
-//     TEST_ASSERT(ptr->size==1);
+    TEST_ASSERT(size == 9);
 
-//     struct product *ptr_prod=ptr->first_product;
 
-//     TEST_ASSERT(ptr_prod->id==5411);
+}
 
-//     TEST_ASSERT(strcmp(ptr_prod->website,"buy.net")==0);
+void read_data_files1(void)
+{
+    struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
 
-//     //first spec
-//     struct list *list = ptr_prod->specs;
-// 	char *str = "page title";
-// 	char *spec = "Kodak PIXPRO AZ251 Bridge Digital Camera - 16MP 25X Optical Zoom HD720p -Black 16.15 Price Comparison at Buy.net";
-//     TEST_ASSERT(list_find(list,str) == 0);
-// 	struct spec *s1 = (struct spec*)list_get(list,0);
-//     TEST_ASSERT(strcmp((char*)s1->value[0],spec) == 0);
+    char *argv="/random/path"; 
 
-//     // second spec
-// 	str = "";
-// 	spec = "sth";
-//     TEST_ASSERT(list_find(list,str) == 0);
-// 	s1 = (struct spec*)list_get(list,1);
-//     TEST_ASSERT(strcmp((char*)s1->value[0],spec) == 0);
+    int variable=read_data_files(map,10,argv);
 
-//     //last spec
-//     str = "height";
-// 	char **specs = malloc(2*sizeof(char*));
-// 	specs[0] = "9.7 cm";
-// 	specs[1] = "3.8 in.";
-//     TEST_ASSERT(list_find(list,str) == 0);
+    TEST_ASSERT(variable == -1); //-1 for random paths 
 
-// 	s1 = (struct spec*)list_get(list,2);
-//     TEST_ASSERT(strcmp((char*)s1->value[0],specs[0]) == 0);
+	map_delete(map);
+}
 
-// 	s1 = (struct spec*)list_get(list,2);
-// 	TEST_ASSERT(strcmp((char*)s1->value[1],specs[1]) == 0);
-// 	free(specs);
-// }
+void read_data_files2(void)
+{
+    struct hash_map *map = map_init(10, hash_str, NULL, free, delete_clique);
 
-// void read_relations_1(void)
-// {
-//     char *x="./tests/example";
+    char *argv="./tests/read_data_x"; 
 
-//     char *y="./tests/datasetY/datasetY.csv";
+    char *key="buy.net//5411";
 
-//     struct hash_map *map = map_init(10, hash_str, NULL, NULL, free);
+    unsigned int pos = map->hash(key) % map->size;
 
-//     int variable=read_data_files(map,10,x);
+    int variable=read_data_files(map,10,argv);
 
-//     read_relations(map,y);
+    TEST_ASSERT(variable == 1); //1 for executing correct path
 
-//     print_results(map);
-// }
+    //next test that it was hashed properly 
+
+    int k=strcmp(map->array[pos]->key,key);
+
+    TEST_ASSERT(k==0);
+
+	map_delete(map);
+}
+
+
+void passing_clique(void)
+{
+    struct hash_map *map = map_init(10, hash_str, NULL, free, delete_clique);
+
+    char *argv="./tests/read_data_x"; 
+
+    char *key="buy.net//5411";
+
+    unsigned int pos = map->hash(key) % map->size;
+
+    int variable=read_data_files(map,10,argv);
+
+    TEST_ASSERT(variable == 1); //1 for executing correct path
+
+    //next test that it was hashed properly 
+
+    int k=strcmp(map->array[pos]->key,key);
+
+    TEST_ASSERT(k==0);
+
+    //i need to see that the right specs were created 
+
+    struct clique **ptr= (struct clique **) map->array[pos]->value;
+
+    TEST_ASSERT((*ptr)->size==1);
+
+    struct product *ptr_prod=(*ptr)->first_product;
+
+    TEST_ASSERT(ptr_prod->id==5411);
+
+    TEST_ASSERT(strcmp(ptr_prod->website,"buy.net")==0);
+
+	map_delete(map);
+    // //first spec
+    // struct list *list = ptr_prod->specs;
+	// char *str = "page title";
+	// char *spec = "Kodak PIXPRO AZ251 Bridge Digital Camera - 16MP 25X Optical Zoom HD720p -Black 16.15 Price Comparison at Buy.net";
+    // TEST_ASSERT(list_find(list,str) == 0);
+	// struct spec *s1 = (struct spec*)list_get(list,0);
+    // TEST_ASSERT(strcmp((char*)s1->value[0],spec) == 0);
+    // // second spec
+	// str = "";
+	// spec = "sth";
+    // TEST_ASSERT(list_find(list,str) == 0);
+	// s1 = (struct spec*)list_get(list,1);
+    // TEST_ASSERT(strcmp((char*)s1->value[0],spec) == 0);
+
+    // //last spec
+    // str = "height";
+	// char **specs = malloc(2*sizeof(char*));
+	// specs[0] = "9.7 cm";
+	// specs[1] = "3.8 in.";
+    // TEST_ASSERT(list_find(list,str) == 0);
+
+	// s1 = (struct spec*)list_get(list,2);
+    // TEST_ASSERT(strcmp((char*)s1->value[0],specs[0]) == 0);
+
+	// s1 = (struct spec*)list_get(list,2);
+	// TEST_ASSERT(strcmp((char*)s1->value[1],specs[1]) == 0);
+	// free(specs);
+}
+
+
+void read_relations_1(void)
+{
+    char *x="./tests/example";
+
+    char *y="./tests/datasetY/datasetY.csv";
+
+    struct hash_map *map = map_init(10, hash_str, NULL, free, delete_clique);
+
+    read_data_files(map,10,x);
+
+    read_relations(map,y);
+
+    print_results(map);
+
+	map_delete(map);
+}
+
+void negative_results(void)
+{
+    char *x="./tests/example";
+
+    char *y="./tests/datasetY/datasetY_2.csv";
+
+    struct hash_map *map = map_init(10, hash_str, NULL, free, delete_clique);
+
+    read_data_files(map,10,x);
+
+    read_relations(map,y);
+
+    print_negative_results(map);
+
+	map_delete(map);
+}
+
+
 
 void test_vector_init(void) {
 	struct vector * vec = vector_init(0, NULL);
@@ -376,7 +407,7 @@ void insert_and_test(struct hash_map *map, void *key, void *value) {
 
 void test_map_insert(void) {
 
-	struct hash_map *map = map_init(57, hash_int, compare_int, NULL, NULL);
+	struct hash_map *map = map_init(57, hash_int, compare_int, free, free);
 
 	int N = 1000;
 	int** key_array = malloc(N * sizeof(*key_array));
@@ -427,13 +458,14 @@ void test_map_find() {
 
 
 TEST_LIST = {
-	// { "example1", pick_the_buckets1 },
-  	// { "example2", pick_the_buckets2 },
-    // { "example3", pick_the_buckets3 },
-    // { "example4", read_data_files1 },
-    // { "example5", read_data_files2 },
-    // { "example6", passing_clique },
-    // { "example7", read_relations_1 },
+	{ "example1", pick_the_buckets1 },
+  	{ "example2", pick_the_buckets2 },
+    { "example3", pick_the_buckets3 },
+    { "example4", read_data_files1 },
+    { "example5", read_data_files2 },
+    { "example6", passing_clique },
+    { "example7", read_relations_1 },
+	{ "example8", negative_results },
 
 	{ "vector_init", test_vector_init },
 	{ "vector_push_back", test_vector_insert },
