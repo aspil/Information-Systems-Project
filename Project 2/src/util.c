@@ -87,17 +87,28 @@ int count_json_files(char *path) {
 	return count;
 }
 
-int pick_the_buckets_and_features(int argc,char **argv,int* features)
+int pick_the_buckets_and_features(int argc,char **argv,int* features,int *print)
 {
-        int number_of_buckets,max_features,flag=0,flag_2=0;
+        int number_of_buckets,max_features,flag=0,flag_2=0,flag_3=0;
         long ret;
         char *ptr;
         FILE *fp;
         int counter=0;
 
+        if ((strcmp(argv[1],"-test")) == 0)
+        {
+        	return 0;
+                
+        }
+        else if ((strcmp(argv[1],"-validate")) == 0)
+        {
+        	return -10;
+        }
+        else
+        {
         if ((fp = fopen(argv[2],"r")) == NULL)
         {
-                fprintf(stderr, "Argument error: File '%s' doesn't exist\n", argv[2]);
+                fprintf(stderr, "Argument error: File '%s' doesn't exist.Provide valid armugents\n", argv[2]);
                 return -1;
         }
 		fclose(fp);
@@ -148,6 +159,30 @@ int pick_the_buckets_and_features(int argc,char **argv,int* features)
                                 }
                                 *features=max_features;
                         }
+                        else if (strcmp(argv[counter],"-p")==0)
+                        {
+                        		counter++;
+
+                        		flag_3=1;
+                                
+                                if (strcmp(argv[counter],"Both")==0)
+                                {
+                                	*print=0;
+                                }
+                                else if ((strcmp(argv[counter],"Negative")==0))
+                                {
+                                	*print=1;
+                                }
+                                else if ((strcmp(argv[counter],"Positive")==0))
+                                {
+                                	*print=2;
+                                }
+                                else 
+                                {
+                                	*print=3;
+                                }
+
+                        }
                         else
                         {
                                 printf("Error: Wrong parameter . You should give either -f or -s \n");
@@ -171,7 +206,15 @@ int pick_the_buckets_and_features(int argc,char **argv,int* features)
                 printf("You didnt give any max features so i used 5000. If you want to use your own. Use [-f number] at command line \n");
                 *features=5000;
         }
+
+        if (flag_3==0)
+        {
+                printf("You didnt give any print orders for negative or positive cliques so i wont print anything \n");
+                *print=3;
+        }
+
         return number_of_buckets;
+    }
 }
 
 char* preprocess_text(char *str) {
@@ -679,4 +722,80 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 		tranverse = tranverse->next;
 	}
 	fclose(ftp);	
+}
+
+void print_cliques(int print_number)
+{
+	if (print_number ==0) //print both
+	{	
+		FILE *fp;
+
+		char *line;
+    	size_t len = 0;
+   	 	ssize_t read;
+
+   	 	fp = fopen("Datasets/positive_relations.csv","r");
+
+   	 	while ((read = getline(&line, &len, fp)) != -1) 
+		{
+			printf("%s\n",line );
+		}
+
+		fclose(fp);
+
+		fp = fopen("Datasets/negative_relations.csv","r");
+
+
+		while ((read = getline(&line, &len, fp)) != -1) 
+		{
+			printf("%s\n",line );
+		}
+
+		fclose(fp);
+
+	}
+	else if (print_number==1) //print negative
+	{
+		FILE *fp;
+
+		char *line;
+    	size_t len = 0;
+   	 	ssize_t read;
+
+   	 	fp = fopen("Datasets/negative_relations.csv","r");
+
+
+		while ((read = getline(&line, &len, fp)) != -1) 
+		{
+			printf("%s\n",line );
+		}
+
+		fclose(fp);
+
+
+	}
+	else if (print_number==2) //print positive
+	{
+		FILE *fp;
+
+		char *line;
+    	size_t len = 0;
+   	 	ssize_t read;
+
+   	 	fp = fopen("Datasets/positive_relations.csv","r");
+
+
+		while ((read = getline(&line, &len, fp)) != -1) 
+		{
+			printf("%s\n",line );
+		}
+
+		fclose(fp);
+	}
+	else
+	{
+		//absolutely nothing
+		return;
+	}
+
 }

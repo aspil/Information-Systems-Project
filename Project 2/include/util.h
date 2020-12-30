@@ -12,11 +12,11 @@ void get_line_without_end_line(char*);
 
 void skip_whitespace(char*);
 
-int count_files(char*);
+int count_json_files(char*);
 
 char *strrem(char*, const char*);
 
-int pick_the_buckets_and_features(int argc,char **argv,int* features);
+int pick_the_buckets_and_features(int argc,char **argv,int* features,int *print);
 
 char* preprocess_text(char*);
 
@@ -33,3 +33,5 @@ int make_the_files(struct hash_map *map);
 void positive_relations_file(char *name_of_file,struct clique *clique_ptr);
 
 void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct negative_relation *ptr);
+
+void print_cliques(int print_number);

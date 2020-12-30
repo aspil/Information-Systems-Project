@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "../include/map.h"
 #include "../include/clique.h"
 struct hash_map* map_init(
@@ -10,6 +11,7 @@ struct hash_map* map_init(
 	DeleteKeyFunction delete_key,
 	DeleteValueFunction delete_val
 ) {
+	assert(size > 0);
 	struct hash_map *map = malloc(sizeof(struct hash_map));
 	map->size = size;
 	map->total_items = 0;

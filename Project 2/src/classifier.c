@@ -146,7 +146,7 @@ struct labels_sets* train_test_split(
 
 		/* Split the test set input pairs from their labels(ground truth) */
 		sets->test_set_labels = malloc(2 * sets->n_test_labels * sizeof(int));
-		for (int i = 0; i < sets->n_test_labels; ++i) {
+		for (int i = 0; i < 2*sets->n_test_labels; ++i) {
 			sets->test_set_labels[i] = sets->test_set_input[i][strlen(sets->test_set_input[i])-1] - '0';
 			sets->test_set_input[i][strlen(sets->test_set_input[i])-1] = '\0';
 		}
@@ -214,8 +214,6 @@ int get_label_count(char *labels_path) {
 	return n_labels;
 }
 
-
-
 void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
 
@@ -248,29 +246,19 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 		label = str[0]-'0';
 		double *x = vectorizer_get_vector(classifier->vect, document1, document2);
 		
-		if (stochastic_gradient_descent(classifier, x, label) < 0) {
-			// printf("Stopping at %d relations\n", i);
-			// break;
-		}
+		stochastic_gradient_descent(classifier, x, label);
 
 		free(x);
 		free(document1);
 		free(document2);
-		// end = clock();
-		// avg_time += ((double) (end - start)) / CLOCKS_PER_SEC;
 	}
-	// avg_time /= n_labels;
-	// printf("Average epoch cpu time: %f\n", avg_time);
 	int counter = 0;
 	for (int i = 0; i < classifier->n_weights; ++i) {
 		classifier->weights[i] = min_weights[i];
 		if (classifier->weights[i] != 0)
 			counter++;
-	 	// printf("%f\n",classifier->weights[i]);
 	}
 	free(min_weights);
-// 	printf("min loss = %.10f\n",min_loss);
-// 	printf("Non zero weights: %d\n",counter);
 }
 
 int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_vector, int result) {
@@ -305,10 +293,8 @@ int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_
 int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 	char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
 
-	// clock_t t;
-	// double time_elapsed1, time_elapsed2;
-	// double avg_time1 = 0.0, avg_time2 = 0.0;
 	int *predictions = malloc(n_labels*sizeof(double));
+
 	for (int i = 0; i < n_labels; ++i) {
 		str = labels[i];
 
@@ -341,14 +327,13 @@ int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 		
 		/* Now use the sigmoid function */
 		sigmoid_result = ((double) 1)/( 1 + exp(f));
-		// printf("test sigmoid: %f\n",sigmoid_result);
+		
 		predictions[i] = (sigmoid_result > 0.5) ? 1 : 0;
 		free(x);
 		free(document1);
 		free(document2);
 	}
 	return predictions;
-	// printf("%d %d\n",classifier->true_positives+classifier->true_negatives+classifier->false_positives+classifier->false_negatives, n_labels);
 }
 
 double accuracy_score(int *y_true, int *y_pred, int n) {
