@@ -68,7 +68,7 @@ struct labels_sets* train_test_split(
 	double validate_percent = 1 - train_percent - test_percent;
 	if (validate_percent <= 0) {
 		fprintf(stderr, "Validation set percentage is negative.\nPlease make sure that the training and test proportions add up into a value strictly less than 1.\n");
-		return NULL;
+		exit(EXIT_FAILURE);
 	}
 	if (stratify == 1) {
 		/* Get the minimum count among the 0 and 1 labels. */
@@ -221,10 +221,7 @@ void train(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 
 	min_weights = malloc(classifier->n_weights * sizeof(double));
 	min_loss = 1000;
-	// clock_t start, end;
-	// double avg_time = 0.0;
 	for (int i = 0; i < n_labels; ++i) {
-		// start = clock();
 		str = labels[i];
 
 		while (str[0] != ',')

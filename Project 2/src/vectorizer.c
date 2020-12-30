@@ -28,7 +28,7 @@ int get_stopwords(char *stopwords_file) {
 	while((chars = getline(&line, &len, fp)) != -1) {
 		token = strtok(line, del);
 		if (token == NULL) {
-			fprintf(stderr, "Failed to tokenize string");
+			perror("Failed to tokenize string: ");
 			return -1;
 		}
 
@@ -434,8 +434,10 @@ void parse_json(struct vectorizer *vectorizer, char *path, char *id, char *site)
 				
 				char *del = " \n";
 				spec_value = preprocess_text(spec_value);
-				if (strlen(spec_value) == 1)
+				if (strlen(spec_value) == 1) {
+					free(spec_value);
 					continue;
+				}
 				
 				/* Tokenize the value */
 				char *token;

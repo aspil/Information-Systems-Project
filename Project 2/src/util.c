@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
 #include "../include/util.h"
 #include "../include/map.h"
 #include "../include/vector.h"
@@ -48,8 +49,6 @@ void skip_whitespace(char *str) {
 	str[x] = '\0';
 	// return str;
 }
-
-
 
 int count_json_files(char *path) {
 	struct dirent *direntPtr;
@@ -304,7 +303,7 @@ char* extract_spec_value(char *str, FILE* fp) {
 		
 		helping_str[0] = '\0';
 		
-		spec_val = malloc(strlen(str) + 1);	// Gets free'd by vector_delete
+		spec_val = malloc(strlen(str) + 1);
 		strcpy(spec_val,str);
 	}
 	else if (str[0] == '[') /* There is a list of values that we need to store */

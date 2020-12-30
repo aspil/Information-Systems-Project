@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
 	int max_features,print;
 	if ((size = pick_the_buckets_and_features(argc, argv, &max_features,&print))== -1)
 		return -1;
-
 	else if (size>0)
 	{
 
@@ -112,7 +111,6 @@ int main(int argc, char *argv[]) {
 	Logistic_Regression_Delete(model);
 
 	/* Free the allocated memory */
-	//free(predictions);
 	free_datasets(sets);
 	vectorizer_delete(tfidf);
 	
@@ -139,6 +137,7 @@ int main(int argc, char *argv[]) {
 		char *line = NULL;
     	size_t len = 0;
    	 	ssize_t read;
+
 		if ((read = getline(&line, &len, fp)) < 0)
 			return fprintf(stderr,"main: error in getline\n"), -1;
 
@@ -156,14 +155,18 @@ int main(int argc, char *argv[]) {
 		vectorizer_fit_transform(tfidf, data_path, (model->n_weights-1)/2);
 		model->vect = tfidf;
 
-		fp = fopen("test.csv","r");
-		if ((read = getline(&line, &len, fp))<0)
-			return fprintf(stderr,"main: error in getline\n"), -1;
+		if ((fp = fopen("test.csv","r")) == NULL) {
+			perror("main: couldn't open test.csv\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if ((read = getline(&line, &len, fp)) < 0) {
+			perror("main: error in getline at test.csv\n");
+			exit(EXIT_FAILURE);
+		}
 		
 		int n_test_labels = atoi(line);
-
 		int *test_labels = malloc(n_test_labels * sizeof(int));
-
 		char **test_set = malloc(n_test_labels * sizeof(char*));
 
 		i = 0;
@@ -175,24 +178,27 @@ int main(int argc, char *argv[]) {
 			test_labels[i] = line[strlen(line)-1]- '0';
 			i++;
 		}
+		fclose(fp);
 
-		free(line);
 		printf("Testing the model...\n");
 		int *predictions = test(model,test_set,n_test_labels);
 		
-		printf("Accuracy: %f\n", accuracy_score(test_labels, predictions,n_test_labels));
-		printf("Precision: %f\n", precision_score(test_labels, predictions,n_test_labels));
-		printf("Recall: %f\n", recall_score(test_labels, predictions,n_test_labels));
+		printf("Accuracy: %f\n", accuracy_score(test_labels, predictions, n_test_labels));
+		printf("Precision: %f\n", precision_score(test_labels, predictions, n_test_labels));
+		printf("Recall: %f\n", recall_score(test_labels, predictions, n_test_labels));
 		printf("F1: %f\n", f1_score(test_labels, predictions,n_test_labels));
-
-		vectorizer_delete(tfidf);
-		Logistic_Regression_Delete(model);
 
 		for (int i = 0; i < n_test_labels; ++i)
 			free(test_set[i]);
-		
+
+		free(line);
+		free(predictions);
 		free(test_set);
 		free(test_labels);
+
+		map_delete(stopwords);
+		vectorizer_delete(tfidf);
+		Logistic_Regression_Delete(model);
 	}
 	else
 	{	//validate area
@@ -202,35 +208,34 @@ int main(int argc, char *argv[]) {
 
 		int size = count_json_files(data_path);
 
-		stopwords = map_init(37, hash_str, compare_str, free, NULL);
-		get_stopwords("Datasets/stopwords.txt");
-
-		struct LogisticRegressor *model = Logistic_Regression_Init();
-
-		FILE *fp = fopen("weights.txt", "r");
-
+		FILE *fp;
+		if ((fp = fopen("weights.txt","r")) == NULL) {
+			perror("main: couldn't open weights.txt:");
+			exit(EXIT_FAILURE);
+		}
 		int i = 0;
-		char *line;
+		char *line = NULL;
 		size_t len = 0;
 		ssize_t read;
+		if ((read = getline(&line, &len, fp)) < 0) {
+			perror("main: error in getline at weights.txt\n");
+			exit(EXIT_FAILURE);
+		}
 
-		read = getline(&line, &len, fp);
-
-		if (read < 0)
-			return printf("Wrong file\n"), -1;
-		
-
+		struct LogisticRegressor *model = Logistic_Regression_Init();
 		model->n_weights = atoi(line);
 		model->weights = malloc(sizeof(double) *model->n_weights);
 
+		stopwords = map_init(37, hash_str, compare_str, free, NULL);
+		get_stopwords("Datasets/stopwords.txt");
+		
 		struct vectorizer *tfidf = vectorizer_init(size, 1);
-
 		vectorizer_fit_transform(tfidf, data_path, (model->n_weights - 1) / 2);
-
 		model->vect = tfidf;
 
-		int *test_labels, n_test_labels;
+		map_delete(stopwords);
 
+		int *test_labels, n_test_labels;
 		while ((read = getline(&line, &len, fp)) != -1)
 		{
 			model->weights[i] = atof(line);	//pass the weights from training
@@ -252,48 +257,35 @@ int main(int argc, char *argv[]) {
 		fp = fopen("Datasets/negative_relations.csv", "r");
 
 		while ((read = getline(&line, &len, fp)) != -1)
-		{
 			j++;
-		}
+		
 		fclose(fp);
 
 		fp = fopen("Datasets/positive_relations.csv", "r");
 
 		n_test_labels = j + i;
 
+		char **test_set = malloc(sizeof(char*) *n_test_labels);
 		test_labels = malloc(sizeof(int) *n_test_labels);
 
-		char **test_set = malloc(sizeof(char*) *n_test_labels);
-
 		int counter = 0;
-
 		while ((read = getline(&line, &len, fp)) != -1)
 		{
 			get_line_without_end_line(line);	//take the relations
-
 			test_set[counter] = malloc(strlen(line) + 1);
-
 			strcpy(test_set[counter], line);
-
 			test_labels[counter] = line[strlen(line) - 1] - '0';
-
 			counter++;
-
 		}
 		fclose(fp);
 
 		fp = fopen("Datasets/negative_relations.csv", "r");
-
 		while ((read = getline(&line, &len, fp)) != -1)
 		{
 			get_line_without_end_line(line);	//take the relations
-
 			test_set[counter] = malloc(strlen(line) + 1);
-
 			strcpy(test_set[counter], line);
-
 			test_labels[counter] = line[strlen(line) - 1] - '0';
-
 			counter++;
 
 		}
@@ -305,38 +297,36 @@ int main(int argc, char *argv[]) {
 		printf("Precision: %f\n", precision_score(test_labels, predictions, n_test_labels));
 		printf("Recall: %f\n", recall_score(test_labels, predictions, n_test_labels));
 		printf("F1: %f\n", f1_score(test_labels, predictions, n_test_labels));
-
+		free(predictions);
 		Logistic_Regression_Delete(model);
+		vectorizer_delete(tfidf);
 
-		free(line);
 
 		for (int i = 0; i < n_test_labels; ++i)
-		{
 			free(test_set[i]);
-		}
-
+		
+		free(line);
 		free(test_set);
-
 		free(test_labels);
 	}
 	return 0;
 }
 
 void free_datasets(struct labels_sets *s) {
-	for (int i = 0; i < s->n_train_labels; ++i) {
+	for (int i = 0; i < s->n_train_labels; ++i)
 		free(s->train_set[i]);
-	};
+	
 	free(s->train_set);
 
-	for (int i = 0; i < s->n_test_labels; ++i) {
+	for (int i = 0; i < s->n_test_labels; ++i)
 		free(s->test_set_input[i]);
-	};
+	
 	free(s->test_set_input);
 	free(s->test_set_labels);
 
-	for (int i = 0; i < s->n_validate_labels; ++i) {
+	for (int i = 0; i < s->n_validate_labels; ++i)
 		free(s->validate_set[i]);
-	};
+	
 	free(s->validate_set);
 
 	free(s);
