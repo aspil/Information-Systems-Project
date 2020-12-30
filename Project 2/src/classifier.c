@@ -272,7 +272,7 @@ int stochastic_gradient_descent(struct LogisticRegressor *classifier, double *x_
 		f += x_vector[i-1] * classifier->weights[i];
 	
 	/* Now use the sigmoid function */
-	sigmoid_result = ((double) 1)/( 1.0 + exp(f));
+	sigmoid_result = ((double) 1)/( 1.0 + exp(-f));
 	double loss = -1*result*log(sigmoid_result) - (1-result) * log(1-sigmoid_result);
 
 	classifier->weights[0] = classifier->weights[0] - ((sigmoid_result-result)) * learning_rate;
@@ -326,7 +326,7 @@ int* test(struct LogisticRegressor *classifier, char **labels, int n_labels) {
 			f += x[i-1] * classifier->weights[i];
 		
 		/* Now use the sigmoid function */
-		sigmoid_result = ((double) 1)/( 1 + exp(f));
+		sigmoid_result = ((double) 1)/( 1 + exp(-f));
 		
 		predictions[i] = (sigmoid_result > 0.5) ? 1 : 0;
 		free(x);

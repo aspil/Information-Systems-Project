@@ -600,7 +600,7 @@ int make_the_files(struct hash_map *map)
 	return 1;
 }
 
-void positive_relations_file(char *name_of_file,struct clique *clique_ptr)
+void positive_relations_file(char *name_of_file, struct clique *clique_ptr)
 {
 	char temp[20];
 	FILE *ftp;
@@ -633,7 +633,7 @@ void positive_relations_file(char *name_of_file,struct clique *clique_ptr)
 	fclose(ftp);
 }
 
-void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct negative_relation *ptr)
+void negative_relations_file(char *name_of_file, struct clique *clique_ptr, struct negative_relation *ptr)
 {
 	
 	char temp[20];
@@ -726,76 +726,67 @@ void negative_relations_file(char *name_of_file,struct clique *clique_ptr,struct
 
 void print_cliques(int print_number)
 {
-	if (print_number ==0) //print both
+	if (print_number == 0) //print both
 	{	
-		FILE *fp;
-
 		char *line;
     	size_t len = 0;
    	 	ssize_t read;
 
-   	 	fp = fopen("Datasets/positive_relations.csv","r");
-
-   	 	while ((read = getline(&line, &len, fp)) != -1) 
-		{
-			printf("%s\n",line );
+		FILE *fp;
+   	 	if ((fp = fopen("Datasets/positive_relations.csv","r")) == NULL) {
+			perror("print_cliques: couldn't open Datasets/positive_relations.csv:");
+			exit(EXIT_FAILURE);
 		}
+
+   	 	while ((read = getline(&line, &len, fp)) != -1)
+			printf("%s\n",line );
 
 		fclose(fp);
 
-		fp = fopen("Datasets/negative_relations.csv","r");
-
-
-		while ((read = getline(&line, &len, fp)) != -1) 
-		{
-			printf("%s\n",line );
+		
+		if ((fp = fopen("Datasets/negative_relations.csv","r")) == NULL) {
+			perror("print_cliques: couldn't open Datasets/positive_relations.csv:");
+			exit(EXIT_FAILURE);
 		}
+		while ((read = getline(&line, &len, fp)) != -1)
+			printf("%s\n",line );
 
+		free(line);
 		fclose(fp);
 
 	}
-	else if (print_number==1) //print negative
+	else if (print_number == 1) //print negative
 	{
-		FILE *fp;
-
 		char *line;
     	size_t len = 0;
    	 	ssize_t read;
 
-   	 	fp = fopen("Datasets/negative_relations.csv","r");
-
-
-		while ((read = getline(&line, &len, fp)) != -1) 
-		{
-			printf("%s\n",line );
+		FILE *fp;
+   	 	if ((fp = fopen("Datasets/negative_relations.csv","r")) == NULL) {
+			perror("print_cliques: couldn't open Datasets/positive_relations.csv:");
+			exit(EXIT_FAILURE);
 		}
+		while ((read = getline(&line, &len, fp)) != -1)
+			printf("%s\n",line );
 
 		fclose(fp);
-
-
+		free(line);
 	}
-	else if (print_number==2) //print positive
+	else if (print_number == 2) //print positive
 	{
-		FILE *fp;
-
 		char *line;
     	size_t len = 0;
    	 	ssize_t read;
 
-   	 	fp = fopen("Datasets/positive_relations.csv","r");
-
-
-		while ((read = getline(&line, &len, fp)) != -1) 
-		{
-			printf("%s\n",line );
+		FILE *fp;
+   	 	if ((fp = fopen("Datasets/positive_relations.csv","r")) == NULL) {
+			perror("print_cliques: couldn't open Datasets/positive_relations.csv:");
+			exit(EXIT_FAILURE);
 		}
+		while ((read = getline(&line, &len, fp)) != -1)
+			printf("%s\n",line );
 
 		fclose(fp);
+		free(line);
 	}
-	else
-	{
-		//absolutely nothing
-		return;
-	}
-
 }

@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 	/* Safe assignments, error checking was done in pick_the_buckets */
 	char *data_path = argv[1];	
 	char *relations_file = argv[2];
-	learning_rate = 0.0001;
+	learning_rate = 0.05;
 
 	/* Construct the stopwords dictionary */
 	stopwords = map_init(37, hash_str, compare_str, free, NULL);
@@ -51,8 +51,8 @@ int main(int argc, char *argv[]) {
 	map_delete(map);
 	printf("Generating the word vectors...\n");
 
-	int size_of_vector=count_json_files(data_path);
-	struct vectorizer *tfidf = vectorizer_init(size_of_vector, 1);	// 1 means tfidf instead of bow
+	int n_files = count_json_files(data_path);
+	struct vectorizer *tfidf = vectorizer_init(n_files, 1);	// 1 means tfidf instead of bow
 	vectorizer_fit_transform(tfidf, data_path, max_features);
 
 
@@ -86,8 +86,6 @@ int main(int argc, char *argv[]) {
 	printf("Training the model...\n");
 	train(model, sets->train_set, sets->n_train_labels);
 	
-	printf("Test labels are : %d\n",sets->n_test_labels );
-
 	//write the weights in a separate file 
 
 	FILE *fp = fopen("weights.txt","w");
@@ -95,7 +93,6 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < model->n_weights; ++i) 
 	{
 		fprintf(fp,"%f\n",model->weights[i]);
-		//printf("%f\n",model->weights[i]);
 	 }
 	 fclose(fp);
 
@@ -125,89 +122,62 @@ int main(int argc, char *argv[]) {
 	{
 		char *data_path = "Datasets";
 
-		int size_of_vector=count_json_files(data_path);
-
-		printf("Generating the word vectors...\n");
-		// 1 means tfidf instead of bow
-		//vectorizer_fit_transform(tfidf, data_path, max_features);
-		//testing area
-		//printf("Welcome to the testing area\n");
+		int n_files = count_json_files(data_path);
 
 		stopwords = map_init(37, hash_str, compare_str, free, NULL);
 		get_stopwords("Datasets/stopwords.txt");
-
-		printf("Testing the model...\n");
-		printf("Initializing the logistic regression model\n");
 	
 		struct LogisticRegressor *model = Logistic_Regression_Init();
 
-		FILE *fp = fopen("weights.txt","r");
-
-		int i=0;
-		char *line;
+		printf("Fetching the model's weights from weights.txt\n"); 
+		FILE *fp;
+		if ((fp = fopen("weights.txt","r")) == NULL) {
+			perror("main: couldn't open weights.txt:");
+			exit(EXIT_FAILURE);
+		}
+		int i = 0;
+		char *line = NULL;
     	size_t len = 0;
    	 	ssize_t read;
+		if ((read = getline(&line, &len, fp)) < 0)
+			return fprintf(stderr,"main: error in getline\n"), -1;
 
-		read = getline(&line, &len, fp);
-
-		if (read<0)
-		{
-			printf("Wrong file\n");
-			return -1;
-		}
-
-		model->n_weights=atoi(line);
-		model->weights=malloc(sizeof(double)*model->n_weights);
-
-		struct vectorizer *tfidf = vectorizer_init(size_of_vector, 1);
-
-		vectorizer_fit_transform(tfidf, data_path, (model->n_weights-1)/2);
-
-		model->vect=tfidf;
-
-		int *test_labels,n_test_labels;
+		model->n_weights = atoi(line);
+		model->weights = malloc(sizeof(double)*model->n_weights);
 
 		while ((read = getline(&line, &len, fp)) != -1) 
 		{	
-			model->weights[i]=atof(line); //pass the weights from training
+			model->weights[i] = atof(line); //pass the weights from training
 			i++;
 		}
-
 		fclose(fp);
 
+		struct vectorizer *tfidf = vectorizer_init(n_files, 1);
+		vectorizer_fit_transform(tfidf, data_path, (model->n_weights-1)/2);
+		model->vect = tfidf;
+
 		fp = fopen("test.csv","r");
+		if ((read = getline(&line, &len, fp))<0)
+			return fprintf(stderr,"main: error in getline\n"), -1;
+		
+		int n_test_labels = atoi(line);
 
-		read = getline(&line, &len, fp);
+		int *test_labels = malloc(n_test_labels * sizeof(int));
 
-		if (read<0)
-		{
-			printf("Wrong file\n");
-			return -1;
-		}
+		char **test_set = malloc(n_test_labels * sizeof(char*));
 
-		n_test_labels=atoi(line);
-
-		test_labels=malloc(sizeof(int)*n_test_labels);
-
-		char **test_set=malloc(sizeof(char*)*n_test_labels);
-
-
-		i=0;
-
+		i = 0;
 		while ((read = getline(&line, &len, fp)) != -1) 
 		{	
 			get_line_without_end_line(line); //take the relations
-
-			test_set[i]=malloc(strlen(line)+1);
-
+			test_set[i] = malloc(strlen(line)+1);
 			strcpy(test_set[i],line);
-
-			test_labels[i]=line[strlen(line)-1]- '0';
-
+			test_labels[i] = line[strlen(line)-1]- '0';
 			i++;
-
 		}
 
+		free(line);
+		printf("Testing the model...\n");
 		int *predictions = test(model,test_set,n_test_labels);
 		
 		printf("Accuracy: %f\n", accuracy_score(test_labels, predictions,n_test_labels));
@@ -215,25 +185,14 @@ int main(int argc, char *argv[]) {
 		printf("Recall: %f\n", recall_score(test_labels, predictions,n_test_labels));
 		printf("F1: %f\n", f1_score(test_labels, predictions,n_test_labels));
 
-
+		vectorizer_delete(tfidf);
 		Logistic_Regression_Delete(model);
-		
-		free(line);
 
 		for (int i = 0; i < n_test_labels; ++i)
-		{
 			free(test_set[i]);
-		}
 		
-	
-
-
 		free(test_set);
-
 		free(test_labels);
-
-
-
 	}
 	else
 	{	//validate area
@@ -241,129 +200,114 @@ int main(int argc, char *argv[]) {
 
 		char *data_path = "Datasets";
 
-		int size=count_json_files(data_path);
-
-		printf("Generating the word vectors...\n");
-		// 1 means tfidf instead of bow
-		//vectorizer_fit_transform(tfidf, data_path, max_features);
-		//testing area
-		//printf("Welcome to the testing area\n");
+		int size = count_json_files(data_path);
 
 		stopwords = map_init(37, hash_str, compare_str, free, NULL);
 		get_stopwords("Datasets/stopwords.txt");
 
-		printf("Testing the model...\n");
-		printf("Initializing the logistic regression model\n");
-	
 		struct LogisticRegressor *model = Logistic_Regression_Init();
 
-		FILE *fp = fopen("weights.txt","r");
+		FILE *fp = fopen("weights.txt", "r");
 
-		int i=0;
+		int i = 0;
 		char *line;
-    	size_t len = 0;
-   	 	ssize_t read;
+		size_t len = 0;
+		ssize_t read;
 
 		read = getline(&line, &len, fp);
 
-		if (read<0)
-		{
-			printf("Wrong file\n");
-			return -1;
-		}
+		if (read < 0)
+			return printf("Wrong file\n"), -1;
+		
 
-		model->n_weights=atoi(line);
-		model->weights=malloc(sizeof(double)*model->n_weights);
+		model->n_weights = atoi(line);
+		model->weights = malloc(sizeof(double) *model->n_weights);
 
 		struct vectorizer *tfidf = vectorizer_init(size, 1);
 
-		vectorizer_fit_transform(tfidf, data_path, (model->n_weights-1)/2);
+		vectorizer_fit_transform(tfidf, data_path, (model->n_weights - 1) / 2);
 
-		model->vect=tfidf;
+		model->vect = tfidf;
 
-		int *test_labels,n_test_labels;
+		int *test_labels, n_test_labels;
 
-		while ((read = getline(&line, &len, fp)) != -1) 
-		{	
-			model->weights[i]=atof(line); //pass the weights from training
-			i++;
-		}
-
-		fclose(fp);
-
-		int j=0;
-
-		i=0;
-
-		fp = fopen("Datasets/positive_relations.csv","r");
-
-		while ((read = getline(&line, &len, fp)) != -1) 
+		while ((read = getline(&line, &len, fp)) != -1)
 		{
+			model->weights[i] = atof(line);	//pass the weights from training
 			i++;
 		}
+		fclose(fp);
+
+		int j = 0;
+
+		i = 0;
+
+		fp = fopen("Datasets/positive_relations.csv", "r");
+
+		while ((read = getline(&line, &len, fp)) != -1)
+			i++;
 
 		fclose(fp);
 
-		fp = fopen("Datasets/negative_relations.csv","r");		
+		fp = fopen("Datasets/negative_relations.csv", "r");
 
-		while ((read = getline(&line, &len, fp)) != -1) 
+		while ((read = getline(&line, &len, fp)) != -1)
 		{
 			j++;
 		}
 		fclose(fp);
-		
-		fp = fopen("Datasets/positive_relations.csv","r");
 
-		n_test_labels=j+i;
+		fp = fopen("Datasets/positive_relations.csv", "r");
 
-		test_labels=malloc(sizeof(int)*n_test_labels);
+		n_test_labels = j + i;
 
-		char **test_set=malloc(sizeof(char*)*n_test_labels);
+		test_labels = malloc(sizeof(int) *n_test_labels);
 
-		int counter=0;
+		char **test_set = malloc(sizeof(char*) *n_test_labels);
 
-		while ((read = getline(&line, &len, fp)) != -1) 
-		{	
-			get_line_without_end_line(line); //take the relations
+		int counter = 0;
 
-			test_set[counter]=malloc(strlen(line)+1);
+		while ((read = getline(&line, &len, fp)) != -1)
+		{
+			get_line_without_end_line(line);	//take the relations
 
-			strcpy(test_set[counter],line);
+			test_set[counter] = malloc(strlen(line) + 1);
 
-			test_labels[counter]=line[strlen(line)-1]- '0';
+			strcpy(test_set[counter], line);
 
-			counter++;
-
-		}
-		fclose(fp);
-
-		fp = fopen("Datasets/negative_relations.csv","r");
-
-		while ((read = getline(&line, &len, fp)) != -1) 
-		{	
-			get_line_without_end_line(line); //take the relations
-
-			test_set[counter]=malloc(strlen(line)+1);
-
-			strcpy(test_set[counter],line);
-
-			test_labels[counter]=line[strlen(line)-1]- '0';
+			test_labels[counter] = line[strlen(line) - 1] - '0';
 
 			counter++;
 
 		}
 		fclose(fp);
 
+		fp = fopen("Datasets/negative_relations.csv", "r");
 
-		int *predictions = test(model,test_set,n_test_labels);
-		
-		printf("Accuracy: %f\n", accuracy_score(test_labels, predictions,n_test_labels));
-		printf("Precision: %f\n", precision_score(test_labels, predictions,n_test_labels));
-		printf("Recall: %f\n", recall_score(test_labels, predictions,n_test_labels));
-		printf("F1: %f\n", f1_score(test_labels, predictions,n_test_labels));
+		while ((read = getline(&line, &len, fp)) != -1)
+		{
+			get_line_without_end_line(line);	//take the relations
+
+			test_set[counter] = malloc(strlen(line) + 1);
+
+			strcpy(test_set[counter], line);
+
+			test_labels[counter] = line[strlen(line) - 1] - '0';
+
+			counter++;
+
+		}
+		fclose(fp);
+
+		int *predictions = test(model, test_set, n_test_labels);
+
+		printf("Accuracy: %f\n", accuracy_score(test_labels, predictions, n_test_labels));
+		printf("Precision: %f\n", precision_score(test_labels, predictions, n_test_labels));
+		printf("Recall: %f\n", recall_score(test_labels, predictions, n_test_labels));
+		printf("F1: %f\n", f1_score(test_labels, predictions, n_test_labels));
 
 		Logistic_Regression_Delete(model);
-		
+
 		free(line);
 
 		for (int i = 0; i < n_test_labels; ++i)
@@ -373,7 +317,7 @@ int main(int argc, char *argv[]) {
 
 		free(test_set);
 
-		free(test_labels); 
+		free(test_labels);
 	}
 	return 0;
 }

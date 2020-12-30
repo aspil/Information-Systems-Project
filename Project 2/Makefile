@@ -42,15 +42,15 @@ $(TEST_EXEC): $(TEST_OBJECTS) $(MODULES_OBJECTS)
 # Dependancies building #
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(MODULES_OBJECTS)
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CC_FLAGS) $(INC) -c -o $@ $<
+	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(UNIT_TESTING_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CC_FLAGS) $(INC) -c -o $@ $<
+	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(MODULE_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CC_FLAGS) $(INC) -c -o $@ $<
+	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
 
 
 .PHONY:
