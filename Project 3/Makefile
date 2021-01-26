@@ -1,8 +1,9 @@
 APP_EXEC ?= app
 TEST_EXEC ?= test
 PROFILING_FLAGS = -pg
-CC_FLAGS = -c -Wall -Wextra -g3 $(PROFILING_FLAGS) 
-CC = gcc $(PROFILING_FLAGS)
+LIB = -pthread -lm
+override CFLAGS = -c -Wall -Wextra -g3 ${VERBOSE}
+CC = gcc $(PROFILING_FLAGS) -pthread $(PROFILING_FLAGS) 
 
 # Include files. #
 INC := -Iinclude
@@ -34,10 +35,10 @@ TEST_OBJECTS += $(BUILD_DIR)/util.o $(BUILD_DIR)/clique.o $(BUILD_DIR)/argparse.
 # Main app #
 $(APP_EXEC): $(APP_OBJECTS) $(MODULES_OBJECTS)
 	@mkdir -p $(BIN_DIR)
-	$(CC) -pg $^ -o $(BIN_DIR)/$(APP_EXEC) -lm
+	$(CC) $(LIB) $^ -o $(BIN_DIR)/$(APP_EXEC) $(LIB)
 
 $(BUILD_DIR)/main.o: $(APP_DIR)/main.c
-	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
+	$(CC) $(CFLAGS) $(INC) -o $@ $<
 
 # Unit testing #
 $(TEST_EXEC): $(TEST_OBJECTS) $(MODULES_OBJECTS)
@@ -47,15 +48,15 @@ $(TEST_EXEC): $(TEST_OBJECTS) $(MODULES_OBJECTS)
 # Dependancies building #
 $(BUILD_DIR)/%.o: $(SRC_DIR)/*/%.c $(MODULES_OBJECTS)
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
+	$(CC) $(CFLAGS) $(INC) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(UNIT_TESTING_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
+	$(CC) $(CFLAGS) $(INC) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(MODULE_DIR)/*/%.c
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CC_FLAGS) $(INC) -o $@ $<
+	$(CC) $(CFLAGS) $(INC) -o $@ $<
 
 
 .PHONY:
