@@ -20,10 +20,12 @@ double *create_weights(int number_of_variables)
 	return array_of_weights;
 }
 
-int load_labels(char * positive_labels_file,
-				char **positive_labels,
-				char * negative_labels_file,
-				char **negative_labels)
+#ifdef SHOW_PROGRESS
+int cnt;
+int verb_labels;
+#endif
+
+int load_labels(char *positive_labels_file, char **positive_labels, char *negative_labels_file, char **negative_labels)
 {
 	size_t	len = 0;
 	ssize_t read;
@@ -43,6 +45,10 @@ int load_labels(char * positive_labels_file,
 		positive_labels[label_count] = malloc(strlen(line) + 1);
 		strcpy(positive_labels[label_count], line);
 		label_count++;
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, verb_labels, 0, 100));
+		fflush(stdout);
+#endif
 	}
 	label_count = 0;
 	fclose(fp);
@@ -58,7 +64,16 @@ int load_labels(char * positive_labels_file,
 		negative_labels[label_count] = malloc(strlen(line) + 1);
 		strcpy(negative_labels[label_count], line);
 		label_count++;
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, verb_labels, 0, 100));
+		fflush(stdout);
+#endif
 	}
+
+#ifdef SHOW_PROGRESS
+	printf("%c[2K\rDone\n", 27);
+#endif
+
 	free(line);
 	fclose(fp);
 	return 0;
@@ -85,19 +100,33 @@ int get_label_count(char *labels_path)
 	return n_labels;
 }
 
-struct labels_sets *train_test_split(char **positive_labels,
-									 int	n_positive_labels,
-									 char **negative_labels,
-									 int	n_negative_labels,
-									 double train_percent,
-									 double test_percent,
-									 int	stratify)
+Datasets *train_test_split(double train_percent, double test_percent, int stratify)
 {
+#ifdef SHOW_PROGRESS
+	cnt = 0;
+#endif
+	int n_positive_labels, n_negative_labels;
+	if ((n_positive_labels = get_label_count("data/train/positive_relations.csv")) < 0)
+		exit(EXIT_FAILURE);
+
+	if ((n_negative_labels = get_label_count("data/train/negative_relations.csv")) < 0)
+		exit(EXIT_FAILURE);
+
+#ifdef SHOW_PROGRESS
+	verb_labels = n_positive_labels + n_negative_labels;
+#endif
+
+	char **positive_labels = malloc(n_positive_labels * sizeof(char *));
+	char **negative_labels = malloc(n_negative_labels * sizeof(char *));
+
+	if ((load_labels("data/train/positive_relations.csv", positive_labels, "data/train/negative_relations.csv",
+					 negative_labels)) < 0)
+		exit(EXIT_FAILURE);
+
 	double validate_percent = 1 - train_percent - test_percent;
 	if (validate_percent <= 0) {
-		fprintf(stderr,
-				"Validation set percentage is negative.\nPlease make sure that the training and "
-				"test proportions add up into a value strictly less than 1.\n");
+		fprintf(stderr, "Validation set percentage is negative.\nPlease make sure that the training and "
+						"test proportions add up into a value strictly less than 1.\n");
 		exit(EXIT_FAILURE);
 	}
 	if (stratify == 1) {
@@ -107,34 +136,33 @@ struct labels_sets *train_test_split(char **positive_labels,
 		if (n_positive_labels < n_negative_labels) { /* Sample the negative labels (0s) */
 			n_samples = n_positive_labels;
 			/* Shuffle before sampling */
-			shuffle_string_array(negative_labels, n_negative_labels);
-
+			shuffle_array(negative_labels, n_negative_labels, sizeof(char *));
 			/* Remove the excess negative samples */
 			for (int i = n_samples; i < n_negative_labels; ++i)
 				free(negative_labels[i]);
 		}
 		else { /* (n_negative_labels <= n_positive_labels) Sample the positive labels (1s) */
 			n_samples = n_negative_labels;
-			shuffle_string_array(positive_labels, n_positive_labels);
-
+			shuffle_array(positive_labels, n_positive_labels, sizeof(char *));
 			/* Remove the excess negative samples */
 			for (int i = n_samples; i < n_positive_labels; ++i)
 				free(positive_labels[i]);
 		}
 		/* Shuffle again before splitting */
-		shuffle_string_array(positive_labels, n_samples);
-		shuffle_string_array(negative_labels, n_samples);
+		shuffle_array(positive_labels, n_samples, sizeof(char *));
+		shuffle_array(negative_labels, n_samples, sizeof(char *));
 
-		struct labels_sets *sets = malloc(sizeof(struct labels_sets));
-		sets->n_train_labels = train_percent * n_samples;
-		sets->n_test_labels = test_percent * n_samples;
-		sets->n_validate_labels = validate_percent * n_samples;
+#ifdef SHOW_PROGRESS
+		cnt = 0;
+#endif
+		printf("Splitting the datasets into train, test and validate sets...\n");
+		Datasets *sets = malloc(sizeof(Datasets));
+		sets->n_train = train_percent * n_samples;
+		sets->n_test = test_percent * n_samples;
+		sets->n_validate = validate_percent * n_samples;
 
 		/* Add the remaining labels to the training set */
-		sets->n_train_labels +=
-			n_samples - sets->n_train_labels - sets->n_test_labels - sets->n_validate_labels;
-
-		/* Store alternating positive and negative relations(labels) on all three arrays */
+		sets->n_train += n_samples - sets->n_train - sets->n_test - sets->n_validate;
 
 		/* Create the training set array */
 		construct_train_set(sets, positive_labels, negative_labels);
@@ -144,26 +172,12 @@ struct labels_sets *train_test_split(char **positive_labels,
 
 		/* Finally construct the validation set */
 		construct_validation_set(sets, positive_labels, negative_labels);
-
-		/* Shuffle them all one last time */
-		shuffle_string_array(sets->train_set, sets->n_train_labels);
-
-		shuffle_string_array(sets->test_set_input, sets->n_test_labels);
-
-		shuffle_string_array(sets->validate_set, sets->n_validate_labels);
-
-		/* Split the test set input pairs from their labels(ground truth) */
-		sets->test_set_labels = malloc(2 * sets->n_test_labels * sizeof(int));
-		for (int i = 0; i < 2 * sets->n_test_labels; ++i) {
-			sets->test_set_labels[i] =
-				sets->test_set_input[i][strlen(sets->test_set_input[i]) - 1] - '0';
-			sets->test_set_input[i][strlen(sets->test_set_input[i]) - 1] = '\0';
-		}
-
-		sets->n_train_labels *= 2;
-		sets->n_test_labels *= 2;
-		sets->n_validate_labels *= 2;
-
+		sets->n_train *= 2;
+		sets->n_test *= 2;
+		sets->n_validate *= 2;
+#ifdef SHOW_PROGRESS
+		printf("%c[2K\rDone\n", 27);
+#endif
 		for (int i = 0; i < n_samples; ++i) {
 			free(positive_labels[i]);
 			free(negative_labels[i]);
@@ -172,48 +186,137 @@ struct labels_sets *train_test_split(char **positive_labels,
 		free(negative_labels);
 		return sets;
 	}
+
 	return NULL;
 }
 
-void construct_train_set(struct labels_sets *sets, char **positive_labels, char **negative_labels)
+void construct_train_set(Datasets *sets, char **positive_labels, char **negative_labels)
 {
-	sets->train_set = malloc(2 * sets->n_train_labels * sizeof(char *));
+	sets->train_samples = malloc(2 * sets->n_train * sizeof(char *));
+	sets->train_labels = malloc(2 * sets->n_train * sizeof(int));
 	int i, j;
-	for (i = 0, j = 0; i < 2 * sets->n_train_labels; i += 2, j++) {
-		sets->train_set[i] = malloc(strlen(positive_labels[j]) + 1);
-		strcpy(sets->train_set[i], positive_labels[j]);
+	for (i = 0, j = 0; i < 2 * sets->n_train; i += 2, j++) {
+		sets->train_samples[i] = malloc(strlen(positive_labels[j]) + 1);
+		sets->train_samples[i + 1] = malloc(strlen(negative_labels[j]) + 1);
 
-		sets->train_set[i + 1] = malloc(strlen(negative_labels[j]) + 1);
-		strcpy(sets->train_set[i + 1], negative_labels[j]);
+		strcpy(sets->train_samples[i], positive_labels[j]);
+		strcpy(sets->train_samples[i + 1], negative_labels[j]);
+
+		sets->train_labels[i] = sets->train_samples[i][strlen(sets->train_samples[i]) - 1] - '0';
+		sets->train_samples[i][strlen(sets->train_samples[i]) - 1] = '\0';
+
+		sets->train_labels[i + 1] = sets->train_samples[i + 1][strlen(sets->train_samples[i + 1]) - 1] - '0';
+		sets->train_samples[i + 1][strlen(sets->train_samples[i + 1]) - 1] = '\0';
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, 2 * (sets->n_train + sets->n_test + sets->n_validate), 0, 100));
+		fflush(stdout);
+#endif
 	}
+	// shuffle_arrays_similar(sets->train_samples, sets->train_labels, 2 * sets->n_train, sizeof(char *), sizeof(int));
 }
 
-void construct_test_set(struct labels_sets *sets, char **positive_labels, char **negative_labels)
+void construct_test_set(Datasets *sets, char **positive_labels, char **negative_labels)
 {
-	sets->test_set_input = malloc(2 * sets->n_test_labels * sizeof(char *));
+	sets->test_samples = malloc(2 * sets->n_test * sizeof(char *));
+	sets->test_labels = malloc(2 * sets->n_test * sizeof(int));
 	int i, j;
-	for (i = 0, j = sets->n_train_labels; i < 2 * sets->n_test_labels;
-		 i += 2, j++) { /* Start after the training labels */
-		sets->test_set_input[i] = malloc(strlen(positive_labels[j]) + 1);
-		strcpy(sets->test_set_input[i], positive_labels[j]);
+	for (i = 0, j = sets->n_test; i < 2 * sets->n_test; i += 2, j++) { /* Start after the training labels */
+		sets->test_samples[i] = malloc(strlen(positive_labels[j]) + 1);
+		sets->test_samples[i + 1] = malloc(strlen(negative_labels[j]) + 1);
 
-		sets->test_set_input[i + 1] = malloc(strlen(negative_labels[j]) + 1);
-		strcpy(sets->test_set_input[i + 1], negative_labels[j]);
+		strcpy(sets->test_samples[i], positive_labels[j]);
+		strcpy(sets->test_samples[i + 1], negative_labels[j]);
+
+		sets->test_labels[i] = sets->test_samples[i][strlen(sets->test_samples[i]) - 1] - '0';
+		sets->test_samples[i][strlen(sets->test_samples[i]) - 1] = '\0';
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, 2 * (sets->n_train + sets->n_test + sets->n_validate), 0, 100));
+		fflush(stdout);
+#endif
 	}
+	shuffle_arrays_similar(sets->test_samples, sets->test_labels, 2 * sets->n_test, sizeof(char *), sizeof(int));
 }
 
-void construct_validation_set(struct labels_sets *sets,
-							  char **			  positive_labels,
-							  char **			  negative_labels)
+void construct_validation_set(Datasets *sets, char **positive_labels, char **negative_labels)
 {
-	sets->validate_set = malloc(2 * sets->n_validate_labels * sizeof(char *));
+	sets->validate_samples = malloc(2 * sets->n_validate * sizeof(char *));
+	sets->validate_labels = malloc(2 * sets->n_validate * sizeof(int));
 	int i, j;
-	for (i = 0, j = sets->n_train_labels + sets->n_test_labels; i < 2 * sets->n_validate_labels;
-		 i += 2, j++) { /* Start after the testing labels */
-		sets->validate_set[i] = malloc(strlen(positive_labels[j]) + 1);
-		strcpy(sets->validate_set[i], positive_labels[j]);
+	for (i = 0, j = sets->n_train + sets->n_test; i < 2 * sets->n_validate; i += 2, j++) {
+		sets->validate_samples[i] = malloc(strlen(positive_labels[j]) + 1);
+		sets->validate_samples[i + 1] = malloc(strlen(negative_labels[j]) + 1);
 
-		sets->validate_set[i + 1] = malloc(strlen(negative_labels[j]) + 1);
-		strcpy(sets->validate_set[i + 1], negative_labels[j]);
+		strcpy(sets->validate_samples[i], positive_labels[j]);
+		strcpy(sets->validate_samples[i + 1], negative_labels[j]);
+
+		sets->validate_labels[i] = sets->validate_samples[i][strlen(sets->validate_samples[i]) - 1] - '0';
+		sets->validate_samples[i][strlen(sets->validate_samples[i]) - 1] = '\0';
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, 2 * (sets->n_train + sets->n_test + sets->n_validate), 0, 100));
+		fflush(stdout);
+#endif
 	}
+	shuffle_arrays_similar(sets->validate_samples, sets->validate_labels, 2 * sets->n_validate, sizeof(char *),
+						   sizeof(int));
+	// shuffle_string_int_array(sets->validate_samples, sets->validate_labels, sets->n_validate);
+}
+
+double sigmoid(double *x, double *w, int n)
+{
+	double f = w[0];
+	for (int i = 1; i < n; ++i) {
+		f += x[i - 1] * w[i];
+	}
+	return ((double) 1) / (1.0 + exp(-f));
+}
+
+double loss(double sigmoid, double y)
+{
+	return -1 * y * log(sigmoid) - (1 - y) * log(1 - sigmoid);
+}
+int predicted_label(double result)
+{
+	return (result > 0.5) ? 1 : 0;
+}
+
+void parse_relation(char *relation, char **doc1, char **doc2)
+{
+	// char *		str = NULL, *temp = NULL;
+	const char *del = " ,\n";
+	char *		token = NULL;
+	char *		temp_relation = malloc(strlen(relation) + 1); /* Copy because the relation must remain untouched */
+	strcpy(temp_relation, relation);
+	if ((token = strtok(temp_relation, del)) == NULL) {
+		perror("Failed to tokenize string: ");
+		exit(EXIT_FAILURE);
+	}
+	*doc1 = malloc(strlen(token) + 1);
+	strcpy(*doc1, token);
+	if ((token = strtok(NULL, del)) == NULL) {
+		perror("Failed to tokenize string: ");
+		exit(EXIT_FAILURE);
+	}
+	*doc2 = malloc(strlen(token) + 1);
+	strcpy(*doc2, token);
+	free(temp_relation);
+	// str = malloc(strlen(relation) + 1);
+	// char **temp = str;
+	// strcpy(str, relation);
+	// // str = relation;
+	// while (str[0] != ',')
+	// 	str = str + 1;
+
+	// str[0] = '\0';
+
+	// *doc1 = malloc(strlen(relation) + 1);
+	// strcpy(*doc1, relation);	// we got the first product
+	// temp = str + 1;				// get the second product
+
+	// while (str[0] != ',')
+	// 	str = str + 1;
+
+	// str[0] = '\0';
+	// *doc2 = malloc(strlen(temp) + 1);
+	// strcpy(*doc2, temp);
+	// free(str);
 }
