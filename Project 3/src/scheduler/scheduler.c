@@ -99,7 +99,7 @@ void* thread_train_work(void* arg)
 	while ((n_epochs_left > 0)) {
 		/* Block thread if the job queue is empty */
 		pthread_mutex_lock(&sch->empty_queue_lock);
-		printf("[Thread %d]: Waiting on empty queue\n", thread_info->counter);
+		// printf("[Thread %d]: Waiting on empty queue\n", thread_info->counter);
 		/* Thread will also block when the scheduler computes the weights, because
 		 * main won't enqueue more jobs before that happens */
 		while ((finish == 0) && (queue_size(sch->jobs) == 0)) {
@@ -112,7 +112,7 @@ void* thread_train_work(void* arg)
 
 		pthread_mutex_unlock(&sch->empty_queue_lock);
 
-		printf("[Thread %d]: Getting job from queue\n", thread_info->counter);
+		// printf("[Thread %d]: Getting job from queue\n", thread_info->counter);
 		Job* job = dequeue(sch->jobs);
 
 		void (*func_ptr)(void*);
@@ -123,7 +123,7 @@ void* thread_train_work(void* arg)
 			args_ptr = job->args;
 			((struct routine_args*) args_ptr)->thread_id = thread_info->counter;
 
-			printf("[Thread %d]: Executing job\n", thread_info->counter);
+			// printf("[Thread %d]: Executing job\n", thread_info->counter);
 			func_ptr(args_ptr); /* Call mini_batch_gradient_descent */
 			printf("[Thread %d]: Finished job\n", thread_info->counter);
 
@@ -136,18 +136,19 @@ void* thread_train_work(void* arg)
 			/* The last thread in the current thread group must wake up the scheduler thread */
 			if (threads_working == 0) {
 				// threads_to_run = sch->threads_working;
-				printf("[Thread %d]: Signal the scheduler\n", thread_info->counter);
+				// printf("[Thread %d]: Signal the scheduler\n", thread_info->counter);
 				pthread_cond_signal(&sch->threads_done);
 			}
 			pthread_mutex_unlock(&sch->thread_cnt_lock);
 		}
 		else {
-			printf("[Thread %d]: Didn't get a job\n", thread_info->counter);
+			// printf("[Thread %d]: Didn't get a job\n", thread_info->counter);
 		}
 	}
-	printf("[Thread %d]: Exiting...\n", thread_info->counter);
+	// printf("[Thread %d]: Exiting...\n", thread_info->counter);
 	pthread_exit(NULL);
 }
+
 void* thread_test_work(void* arg)
 {
 	Info* thread_info = (Info*) arg;
@@ -209,62 +210,6 @@ void* thread_test_work(void* arg)
 	printf("[Thread %d]: Exiting...\n", thread_info->counter);
 	pthread_exit(NULL);
 }
-// void* thread_test_work(void* arg)
-// {
-// 	Info* thread_info = (Info*) arg;
-// 	printf("[Thread %d]: Starting\n", thread_info->counter);
-
-// 	JobScheduler* sch = thread_info->scheduler;
-// 	/* Loop as long as there are epochs left to iterate */
-// 	while (n_epochs_left > 0) {
-// 		/* Block thread if the job queue is empty */
-// 		pthread_mutex_lock(&sch->empty_queue_lock);
-// 		printf("[Thread %d]: Waiting on empty queue\n", thread_info->counter);
-// 		/* Thread will also block when the scheduler computes the weights, because
-// 		 * main won't enqueue more jobs before that happens */
-// 		while ((finish == 0) && (queue_size(sch->jobs) == 0)) {
-// 			pthread_cond_wait(&sch->empty_queue, &sch->empty_queue_lock);
-// 		}
-
-// 		pthread_mutex_unlock(&sch->empty_queue_lock);
-
-// 		printf("[Thread %d]: Getting job from queue\n", thread_info->counter);
-// 		Job* job = dequeue(sch->jobs);
-
-// 		void (*func_ptr)(void*);
-// 		void* args_ptr;
-
-// 		if (job != NULL) {
-// 			func_ptr = job->routine;
-// 			args_ptr = job->args;
-// 			((struct routine_args*) args_ptr)->thread_id = thread_info->counter;
-
-// 			printf("[Thread %d]: Executing job\n", thread_info->counter);
-// 			func_ptr(args_ptr); /* Call mini_batch_gradient_descent */
-// 			printf("[Thread %d]: Finished job\n", thread_info->counter);
-
-// 			free(job->args);
-// 			free(job);
-
-// 			pthread_mutex_lock(&sch->thread_cnt_lock);
-// 			threads_working--;
-// 			threads_finished++;
-// 			/* The last thread in the current thread group must wake up the scheduler thread */
-// 			if (threads_working == 0) {
-// 				// threads_to_run = sch->threads_working;
-// 				printf("[Thread %d]: Signal the scheduler\n", thread_info->counter);
-// 				pthread_cond_signal(&sch->compute_weights);
-// 				pthread_cond_signal(&sch->threads_done);
-// 			}
-// 			pthread_mutex_unlock(&sch->thread_cnt_lock);
-// 		}
-// 		else {
-// 			printf("[Thread %d]: Didn't get a job\n", thread_info->counter);
-// 		}
-// 	}
-// 	printf("[Thread %d]: Exiting...\n", thread_info->counter);
-// 	pthread_exit(NULL);
-// }
 
 void* weights_calculator(void* arg)
 {

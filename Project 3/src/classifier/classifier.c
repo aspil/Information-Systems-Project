@@ -158,6 +158,7 @@ void resolve_transitivity_issues(LogisticRegressor *model, struct vector *v)
 		new_sample = vector_get(v, i);
 		char pair[strlen(new_sample)];
 		strncpy(pair, new_sample, strlen(new_sample) - 1);
+
 		for (n = 0; n < model->datasets->n_train; n++) {
 			if (strcmp(new_train_samples[n], pair) == 0)
 				break;
@@ -301,7 +302,7 @@ void train(LogisticRegressor *model, int n_threads)
 		}
 		while (n_batches_left > 0) {
 			pthread_mutex_lock(&sch->mutex);
-			printf("[Main]: Calculating threads_working\n");
+			// printf("[Main]: Calculating threads_working\n");
 			if (n_batches_left < n_threads) {
 				threads_working = n_batches_left;
 			}
@@ -311,14 +312,14 @@ void train(LogisticRegressor *model, int n_threads)
 
 			pthread_mutex_unlock(&sch->mutex);
 			for (i = 0; i < n_threads; i++) {
-				printf("[Main]: %d iteration: Creating new job with start %d and end %d \n", i, start, end);
+				// printf("[Main]: %d iteration: Creating new job with start %d and end %d \n", i, start, end);
 				Job *new_job = create_job(mini_batch_gradient_descent, model, start, end);
 
 				printf("[Main]: Submitting new job\n");
 				submit_job(sch, new_job); /* Enqueue the job */
 
 				if (end == model->datasets->n_train - 1) { /* Stop if we reached the end of the training set */
-					printf("[Main]: i on break is %d\n", i);
+					// printf("[Main]: i on break is %d\n", i);
 					break;
 				}
 
@@ -331,7 +332,7 @@ void train(LogisticRegressor *model, int n_threads)
 					end = model->datasets->n_train - 1;
 				}
 			}
-			printf("[Main]: i is %d, n_batches_left is %d\n", i, n_batches_left);
+			// printf("[Main]: i is %d, n_batches_left is %d\n", i, n_batches_left);
 			if (i == 0)
 				n_batches_left -= 1;
 			else if (i == n_threads)
@@ -339,7 +340,7 @@ void train(LogisticRegressor *model, int n_threads)
 			else
 				n_batches_left -= i + 1;
 			// n_batches_left -= i;
-			printf("[Main]: batches left: %d\n", n_batches_left);
+			// printf("[Main]: batches left: %d\n", n_batches_left);
 			printf("[Main]: Waiting for the scheduler session\n");
 			wait_scheduler_weights(sch);
 			printf("[Main]: Scheduler finished...\n");
@@ -350,7 +351,7 @@ void train(LogisticRegressor *model, int n_threads)
 	}
 	printf("[Main]: End of epochs\n");
 	finish = 1;
-	printf("[Main]: Signal all to finish\n");
+	// printf("[Main]: Signal all to finish\n");
 	pthread_cond_signal(&sch->threads_done);
 	pthread_cond_broadcast(&sch->empty_queue);
 	destroy_scheduler(sch);
@@ -364,6 +365,16 @@ void train(LogisticRegressor *model, int n_threads)
 	fprintf(fp, "%d\n", model->n_weights);
 	for (int i = 0; i < model->n_weights; ++i)
 		fprintf(fp, "%f\n", model->weights[i]);
+
+	fclose(fp);
+	// write the testing labels to a separate file
+	if ((fp = fopen("data/test/testing_data.csv", "w")) == NULL) {
+		perror("main: can't open weigts.txt:");
+		exit(EXIT_FAILURE);
+	}
+	fprintf(fp, "%d\n", model->datasets->n_test);
+	for (int i = 0; i < model->datasets->n_test; ++i)
+		fprintf(fp, "%s%d\n", model->datasets->test_samples[i], model->datasets->test_labels[i]);
 
 	fclose(fp);
 }

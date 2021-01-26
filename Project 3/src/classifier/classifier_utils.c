@@ -229,6 +229,9 @@ void construct_test_set(Datasets *sets, char **positive_labels, char **negative_
 
 		sets->test_labels[i] = sets->test_samples[i][strlen(sets->test_samples[i]) - 1] - '0';
 		sets->test_samples[i][strlen(sets->test_samples[i]) - 1] = '\0';
+
+		sets->test_labels[i + 1] = sets->test_samples[i + 1][strlen(sets->test_samples[i + 1]) - 1] - '0';
+		sets->test_samples[i + 1][strlen(sets->test_samples[i + 1]) - 1] = '\0';
 #ifdef SHOW_PROGRESS
 		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, 2 * (sets->n_train + sets->n_test + sets->n_validate), 0, 100));
 		fflush(stdout);
@@ -251,6 +254,9 @@ void construct_validation_set(Datasets *sets, char **positive_labels, char **neg
 
 		sets->validate_labels[i] = sets->validate_samples[i][strlen(sets->validate_samples[i]) - 1] - '0';
 		sets->validate_samples[i][strlen(sets->validate_samples[i]) - 1] = '\0';
+
+		sets->validate_labels[i + 1] = sets->validate_samples[i + 1][strlen(sets->validate_samples[i + 1]) - 1] - '0';
+		sets->validate_samples[i + 1][strlen(sets->validate_samples[i + 1]) - 1] = '\0';
 #ifdef SHOW_PROGRESS
 		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, 2 * (sets->n_train + sets->n_test + sets->n_validate), 0, 100));
 		fflush(stdout);
