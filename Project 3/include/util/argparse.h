@@ -13,6 +13,9 @@ int parse_cmd_arguments(int		argc,
 						char ** relationsfile,
 						int *	max_features,
 						double *learning_rate,
+						int *	epochs,
+						int *	batch_size,
+						int *	n_threads,
 						int *	debug);
 
 void check_multiple_option_redefinition(char **argv, char opt, int optflag);
