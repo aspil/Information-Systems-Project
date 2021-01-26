@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,12 +54,13 @@ int get_stopwords(char *stopwords_file)
 	return 0;
 }
 
-struct vectorizer *vectorizer_init(int files_count, int type)
+Vectorizer *vectorizer_init(int files_count, int type)
 {
-	struct vectorizer *v = malloc(sizeof(struct vectorizer));
+	Vectorizer *v = malloc(sizeof(Vectorizer));
 	v->documents_count = files_count;
 	v->word_frequencies = map_init(files_count, hash_str, compare_str, free, vector_delete);
 	v->type = type;
+	pthread_mutex_init(&(v->mutex), NULL);
 	if (type != 0)
 		v->words_idf = map_init(5 * files_count, hash_str, compare_str, free, idf_elem_delete);
 	else
@@ -66,7 +68,7 @@ struct vectorizer *vectorizer_init(int files_count, int type)
 	return v;
 }
 
-void vectorizer_delete(struct vectorizer *v)
+void vectorizer_delete(Vectorizer *v)
 {
 	map_delete(v->word_frequencies);
 	map_delete(v->features);
@@ -75,59 +77,63 @@ void vectorizer_delete(struct vectorizer *v)
 		map_delete(v->words_idf);
 	free(v);
 }
+int cnt;
 
-void vectorizer_fit(struct vectorizer *vectorizer, char *path)
+void vectorizer_fit_transform(Vectorizer *vectorizer, char *path, int max_features)
 {
+#ifdef SHOW_PROGRESS
+	printf("Finding the frequency of each word in each document...\n");
+	cnt = 0;
+#endif
 	vectorizer_construct(vectorizer, path);
-}
-
-void vectorizer_transform(struct vectorizer *vectorizer, int max_features)
-{
+	printf("%c[2K\rDone\n", 27);
 	if (vectorizer->type == TFIDF) {
+		printf("Calculating term frequency values...\n");
 		compute_tf_values(vectorizer);
+		printf("Calculating inverse-document frequency values...\n");
 		compute_idf_values(vectorizer);
+		printf("Calculating tfidf values...\n");
 		compute_tfidf_values(vectorizer);
+		printf("Reducing the total features down to %d...\n", max_features);
 		vectorizer_reduce_features(vectorizer, max_features);
 	}
-}
-
-void vectorizer_fit_transform(struct vectorizer *vectorizer, char *path, int max_features)
-{
-	vectorizer_fit(vectorizer, path);
-	vectorizer_transform(vectorizer, max_features);
 	// int default_feature_reductions = (int)((double) 2/3 *
 	// vectorizer->words_idf->total_items);
 	// vectorizer_transform(vectorizer, default_feature_reductions);
 }
 
-double *vectorizer_get_vector(struct vectorizer *vectorizer, char *document1, char *document2)
+double *vectorizer_get_vector(Vectorizer *vectorizer, char *document1, char *document2)
 {
-	int		document_words_count;
 	double *x_vector = calloc(2 * vectorizer->max_features, sizeof(double));
 
+	pthread_mutex_lock(&vectorizer->mutex);
 	struct vector *			vec;
 	struct vectorizer_elem *elem;
 	struct triple *			t;
+	/* Get the first document in the sparse matrix */
 	if ((vec = map_find(vectorizer->word_frequencies, document1)) != NULL) {
-		document_words_count = vector_size(vec);
-		for (int n = 0; n < document_words_count; ++n) {
+		/* Get its tfidf values for every word */
+		for (int n = 0; n < vector_size(vec); ++n) {
 			elem = (struct vectorizer_elem *) vector_get(vec, n);
+			/* If it belogns to the reduced features, store the tfidf value */
 			if ((t = map_find(vectorizer->features, elem->word)) != NULL) {
 				t->b_d = elem->tfidf;
 			}
 		}
 	}
-
+	/* Get the second document in the sparse matrix */
 	if ((vec = map_find(vectorizer->word_frequencies, document2)) != NULL) {
-		document_words_count = vector_size(vec);
-		for (int n = 0; n < document_words_count; ++n) {
+		for (int n = 0; n < vector_size(vec); ++n) {
+			/* Get its tfidf values for every word */
 			elem = (struct vectorizer_elem *) vector_get(vec, n);
+			/* If it belogns to the reduced features, store the tfidf value */
 			if ((t = map_find(vectorizer->features, elem->word)) != NULL) {
 				t->c_d = elem->tfidf;
 			}
 		}
 	}
-	/* TODO: change to map_begin and map_advance */
+
+	/* Now that the tfidf values of the reduced features are updated, create the word vector */
 	for (struct triple *iter = map_begin(vectorizer->features); iter != NULL;
 		 iter = map_advance(vectorizer->features)) {
 		x_vector[iter->a_i] = (double) iter->b_d;
@@ -135,24 +141,22 @@ double *vectorizer_get_vector(struct vectorizer *vectorizer, char *document1, ch
 		iter->b_d = 0.0;
 		iter->c_d = 0.0;
 	}
-
+	pthread_mutex_unlock(&vectorizer->mutex);
 	return x_vector;
 }
 
-void vectorizer_construct(struct vectorizer *vectorizer, char *path)
+void vectorizer_construct(Vectorizer *vectorizer, char *path)
 {
 	struct dirent *pDirent;
 	char *		   subdir, *path_to_file;
 
-	DIR *pDir = opendir(path);	  // anoigma tou path
+	DIR *pDir = opendir(path);
 	if (pDir == NULL) {
 		perror("vectorizer_construct: can't open directory");
 		exit(EXIT_FAILURE);
 	}
 	while ((pDirent = readdir(pDir)) != NULL) {
-		if (strcmp(pDirent->d_name, ".") != 0 &&
-			strcmp(pDirent->d_name, "..") != 0)	   // diabase ola ektos apo tis . kai ..
-		{
+		if (strcmp(pDirent->d_name, ".") != 0 && strcmp(pDirent->d_name, "..") != 0) {
 			if (pDirent->d_type == DT_DIR) {
 				subdir = calloc(strlen(path) + 2 + strlen(pDirent->d_name), sizeof(char));
 				/* Construct the path to the subdirectory */
@@ -164,8 +168,7 @@ void vectorizer_construct(struct vectorizer *vectorizer, char *path)
 				vectorizer_construct(vectorizer, subdir);
 				free(subdir);
 			}
-			else if (pDirent->d_type == DT_REG &&
-					 (strcmp(strrchr(pDirent->d_name, '.'), ".json") == 0)) {
+			else if (pDirent->d_type == DT_REG && (strcmp(strrchr(pDirent->d_name, '.'), ".json") == 0)) {
 				char *temp_path = calloc(strlen(path) + 1, sizeof(char));
 				strcpy(temp_path, path);
 
@@ -186,7 +189,10 @@ void vectorizer_construct(struct vectorizer *vectorizer, char *path)
 				strcat(path_to_file, pDirent->d_name);
 
 				parse_json(vectorizer, path_to_file, pDirent->d_name, website);
-
+#ifdef SHOW_PROGRESS
+				printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, vectorizer->documents_count, 0, 100));
+				fflush(stdout);
+#endif
 				free(path_to_file);
 				free(temp_path);
 			}
@@ -223,18 +229,18 @@ void word_frequencies_add_value(struct hash_map *word_frequencies, char *file, c
 	}
 }
 
-void vectorizer_reduce_features(struct vectorizer *vectorizer, int max_features)
+void vectorizer_reduce_features(Vectorizer *vectorizer, int max_features)
 {
 	vectorizer->max_features = max_features;
 	if (max_features > vectorizer->words_idf->total_items) {
 		vectorizer->max_features = vectorizer->words_idf->total_items;
 	}
 	if (vectorizer->type == TFIDF) {
-		tfidf_reduce_features(vectorizer, max_features);
+		tfidf_reduce_features(vectorizer);
 	}
 }
 
-void parse_json(struct vectorizer *vectorizer, char *path, char *id, char *site)
+void parse_json(Vectorizer *vectorizer, char *path, char *id, char *site)
 {
 	char *	str, *line = NULL, *spec_title = NULL, *spec_value = NULL;
 	ssize_t read;

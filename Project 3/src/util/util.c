@@ -14,13 +14,70 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef SHOW_PROGRESS
+double rescale_lo_hi(int x, int old_min, int old_max, int new_min, int new_max)
+{
+	return (double) ((new_max - new_min) / (1.0 * (old_max - old_min))) * (x - old_max) + (double) new_max;
+}
+#endif
+
 void shuffle_string_array(char *array[], int size)
 {
 	for (int i = 0; i < size; i++) {
-		int	  new_pos = i + rand() / (RAND_MAX / (size - i) + 1);
+		int new_pos = i + rand() / (RAND_MAX / (size - i) + 1);
+		// printf("1: new_pos: %d\n", new_pos);
 		char *temp = array[new_pos];
 		array[new_pos] = array[i];
 		array[i] = temp;
+	}
+}
+
+void shuffle_array(void *array, size_t n, size_t size)
+{
+	if (n > 1) {
+		char *carray = array;
+		void *aux;
+		aux = malloc(size);
+		size_t i;
+		for (i = 1; i < n; ++i) {
+			size_t j = rand() % (i + 1);
+			j *= size;
+			memcpy(aux, &carray[j], size);
+			memcpy(&carray[j], &carray[i * size], size);
+			memcpy(&carray[i * size], aux, size);
+		}
+		free(aux);
+	}
+}
+
+void shuffle_arrays_similar(void *array1, void *array2, size_t n, size_t size1, size_t size2)
+{
+	if (n > 1) {
+		char *carray1 = array1;
+		void *aux1;
+		aux1 = malloc(size1);
+
+		char *carray2 = array2;
+		void *aux2;
+		aux2 = malloc(size2);
+
+		size_t i;
+		for (i = 1; i < n; ++i) {
+			size_t temp_pos = rand() % (i + 1);
+			/* Swap first array */
+			size_t pos1 = temp_pos * size1;
+			memcpy(aux1, &carray1[pos1], size1);
+			memcpy(&carray1[pos1], &carray1[i * size1], size1);
+			memcpy(&carray1[i * size1], aux1, size1);
+
+			/* Swap second array */
+			size_t pos2 = temp_pos * size2;
+			memcpy(aux2, &carray2[pos2], size2);
+			memcpy(&carray2[pos2], &carray2[i * size2], size2);
+			memcpy(&carray2[i * size2], aux2, size2);
+		}
+		free(aux1);
+		free(aux2);
 	}
 }
 
@@ -52,8 +109,7 @@ int count_json_files(char *path)
 				free(subdir);
 			}
 			/* Check if the pointer is a regular json file */
-			else if (direntPtr->d_type == DT_REG &&
-					 (strcmp(strrchr(direntPtr->d_name, '.'), ".json") == 0)) {
+			else if (direntPtr->d_type == DT_REG && (strcmp(strrchr(direntPtr->d_name, '.'), ".json") == 0)) {
 				count++;
 			}
 		}
@@ -265,8 +321,8 @@ char *extract_spec_value(char *str, FILE *fp)
 					strcpy(spec_val, line_ptr);
 				}
 				else {
-					spec_val = realloc(spec_val, strlen(spec_val) + strlen(line_ptr) +
-													 2);	// Gets free'd by vector_delete
+					spec_val =
+						realloc(spec_val, strlen(spec_val) + strlen(line_ptr) + 2);	   // Gets free'd by vector_delete
 					strcat(strcat(spec_val, " "), line_ptr);
 				}
 			}
@@ -303,18 +359,17 @@ int print_results(struct hash_map *map)
 					print_product = iteration_first_product->next;
 					while (print_product != NULL) {
 						relations++;
-						printf("%s//%d %s//%d \n", iteration_first_product->website,
-							   iteration_first_product->id, print_product->website,
-							   print_product->id);
+						printf("%s//%d %s//%d \n", iteration_first_product->website, iteration_first_product->id,
+							   print_product->website, print_product->id);
 						print_product = print_product->next;
 					}
 					iteration_first_product = iteration_first_product->next;
 				}
 			}
 			else
-				result = vector_search_clique(
-					vec, *(struct clique **) ptr->value);	 // checks if the clique you want to
-															 // print has already been printed
+				result =
+					vector_search_clique(vec, *(struct clique **) ptr->value);	  // checks if the clique you want to
+																				  // print has already been printed
 
 			if (result == -1) {
 				// you can print this clique
@@ -324,9 +379,8 @@ int print_results(struct hash_map *map)
 					print_product = iteration_first_product->next;
 					while (print_product != NULL) {
 						relations++;
-						printf("%s//%d %s//%d \n", iteration_first_product->website,
-							   iteration_first_product->id, print_product->website,
-							   print_product->id);
+						printf("%s//%d %s//%d \n", iteration_first_product->website, iteration_first_product->id,
+							   print_product->website, print_product->id);
 						print_product = print_product->next;
 					}
 					iteration_first_product = iteration_first_product->next;
@@ -365,8 +419,7 @@ int print_negative_results(struct hash_map *map)
 				printf("The clique consists of:\n");
 
 				while (iteration_first_product != NULL) {
-					printf("%s//%d \n", iteration_first_product->website,
-						   iteration_first_product->id);
+					printf("%s//%d \n", iteration_first_product->website, iteration_first_product->id);
 					iteration_first_product = iteration_first_product->next;
 				}
 
@@ -378,8 +431,7 @@ int print_negative_results(struct hash_map *map)
 					iteration_first_product = list_ptr->neg_rel->first_product;
 
 					while (iteration_first_product != NULL) {
-						printf("%s//%d \n", iteration_first_product->website,
-							   iteration_first_product->id);
+						printf("%s//%d \n", iteration_first_product->website, iteration_first_product->id);
 						iteration_first_product = iteration_first_product->next;
 					}
 
@@ -387,9 +439,9 @@ int print_negative_results(struct hash_map *map)
 				}
 			}
 			else
-				result = vector_search_clique(
-					vec, *(struct clique **) ptr->value);	 // checks if the clique you want to
-															 // print has already been printed
+				result =
+					vector_search_clique(vec, *(struct clique **) ptr->value);	  // checks if the clique you want to
+																				  // print has already been printed
 
 			if (result == -1) {
 				// you can print this clique
@@ -400,8 +452,7 @@ int print_negative_results(struct hash_map *map)
 				printf("The clique consists of:\n");
 
 				while (iteration_first_product != NULL) {
-					printf("%s//%d \n", iteration_first_product->website,
-						   iteration_first_product->id);
+					printf("%s//%d \n", iteration_first_product->website, iteration_first_product->id);
 					iteration_first_product = iteration_first_product->next;
 				}
 
@@ -413,8 +464,7 @@ int print_negative_results(struct hash_map *map)
 					iteration_first_product = list_ptr->neg_rel->first_product;
 
 					while (iteration_first_product != NULL) {
-						printf("%s//%d \n", iteration_first_product->website,
-							   iteration_first_product->id);
+						printf("%s//%d \n", iteration_first_product->website, iteration_first_product->id);
 						iteration_first_product = iteration_first_product->next;
 					}
 					printf("end\n");
@@ -518,8 +568,8 @@ void positive_relations_file(char *name_of_file, struct clique *clique_ptr)
 	while (iteration_first_product != NULL) {
 		print_product = iteration_first_product->next;
 		while (print_product != NULL) {
-			fprintf(ftp, "%s//%d,%s//%d,1\n", iteration_first_product->website,
-					iteration_first_product->id, print_product->website, print_product->id);
+			fprintf(ftp, "%s//%d,%s//%d,1\n", iteration_first_product->website, iteration_first_product->id,
+					print_product->website, print_product->id);
 			print_product = print_product->next;
 		}
 		iteration_first_product = iteration_first_product->next;
@@ -527,9 +577,7 @@ void positive_relations_file(char *name_of_file, struct clique *clique_ptr)
 	fclose(ftp);
 }
 
-void negative_relations_file(char *					   name_of_file,
-							 struct clique *		   clique_ptr,
-							 struct negative_relation *ptr)
+void negative_relations_file(char *name_of_file, struct clique *clique_ptr, struct negative_relation *ptr)
 {
 	FILE *ftp;
 	if ((ftp = fopen(name_of_file, "a")) == NULL)
@@ -550,8 +598,8 @@ void negative_relations_file(char *					   name_of_file,
 			iteration_product = iteration->first_product;
 
 			while (iteration_product != NULL) {
-				fprintf(ftp, "%s//%d,%s//%d,0\n", tranverse->website, tranverse->id,
-						iteration_product->website, iteration_product->id);
+				fprintf(ftp, "%s//%d,%s//%d,0\n", tranverse->website, tranverse->id, iteration_product->website,
+						iteration_product->id);
 				iteration_product = iteration_product->next;
 			}
 
@@ -665,4 +713,39 @@ void print_cliques(int print_number)
 		free(line);
 		fclose(fp);
 	}
+}
+
+void get_json_files(char *path, int file_cnt, char **files)
+{
+	struct dirent *direntPtr;
+	DIR *		   dir = opendir(path);
+	char *		   subdir;
+	if (dir == NULL) {
+		perror("get_json_files: ");
+		exit(EXIT_FAILURE);
+	}
+	while ((direntPtr = readdir(dir)) != NULL) {
+		if (strcmp(direntPtr->d_name, ".") != 0 && strcmp(direntPtr->d_name, "..") != 0) {
+			/* Check if the pointer is a directory, and visit recursively */
+			if (direntPtr->d_type == DT_DIR) {
+				subdir = calloc(strlen(path) + 2 + strlen(direntPtr->d_name), sizeof(char));
+
+				/* Construct the path to the subdirectory */
+				strcat(subdir, path);
+				if (path[strlen(path) - 1] != '/')
+					strcat(subdir, "/");
+				strcat(subdir, direntPtr->d_name);
+
+				/* Recurse into the subdirectory */
+				get_json_files(subdir, file_cnt, files);
+				free(subdir);
+			}
+			/* Check if the pointer is a regular json file */
+			else if (direntPtr->d_type == DT_REG && (strcmp(strrchr(direntPtr->d_name, '.'), ".json") == 0)) {
+				files[file_cnt] = malloc(strlen(direntPtr->d_name));
+				file_cnt++;
+			}
+		}
+	}
+	closedir(dir);
 }

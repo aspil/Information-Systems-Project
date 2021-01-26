@@ -71,15 +71,19 @@ static struct option long_options[] = {
 	{"max_features", required_argument, NULL, 'f'},
 	{"learning_rate", required_argument, NULL, 'l'},
 
+	{"nthreads", required_argument, NULL, 't'},
+	{"batch_size", required_argument, NULL, 'b'},
+	{"epochs", required_argument, NULL, 'e'},
 	{"debug", required_argument, NULL, 'd'},
 	{"help", no_argument, NULL, 'h'},
 	{NULL, 0, NULL, 0},
 };
 
 static const char *usage =
-	"\e[1mUSAGE\e[0m\n\t ./bin/app -m \e[4mMODE\e[0m -i \e[4mDATAPATH\e[0m -r "
-	"\e[4mRELATIONSFILE\e[0m "
-	"-f \e[4mFEATURES\e[0m -l \e[4mRATE\e[0m [-d \e[4mDEBUG\e[0m]\n\n"
+	"\e[1mUSAGE\e[0m\n\t ./bin/app -m \e[4mMODE\e[0m -i \e[4mDATAPATH\e[0m "
+	"-r \e[4mRELATIONSFILE\e[0m -f \e[4mFEATURES\e[0m -l \e[4mRATE\e[0m "
+	"-t \e[4mNUMTHREADS\e[0m -b \e[4mBATCHSIZE\e[0m [-d \e[4mDEBUG\e[0m]\n\n"
+
 	"\e[1mDISCLAIMERS\e[0m\n"
 	"\n\tBefore running the program with \e[4mMODE\e[0m=\e[1mtest\e[0m, ensure that you have "
 	"already\n"
@@ -106,10 +110,17 @@ static const char *usage =
 	"\n\t-l \e[4mRATE\e[0m, --learning_rate=\e[4mRATE\e[0m\n\t\t"
 	"Provide learning rate into \e[4mRATE\e[0m(double) to be used in gradient descent.\n"
 
+	"\n\t-t \e[4mNUMTHREADS\e[0m, --nthreads=\e[4mNUMTHREADS\e[0m\n\t\t"
+	"The number of threads to parallelize some procedures.\n"
+
+	"\n\t-t \e[4mBATCHSIZE\e[0m, --nthreads=\e[4mBATCHSIZE\e[0m\n\t\t"
+	"The size of the sample batches in gradient descent.\n"
+
 	"\n\t-d \e[4mDEBUG\e[0m, --debug=\e[4mDEBUG\e[0m\n\t\t"
 	"Controls whether the program's output will contain results for the cliques while parsing the "
 	"initial labels.\n\t\t\e[4mDEBUG\e[0m is one of "
 	"\e[1mpositive\e[0m,\e[1mnegative\e[0m,\e[1mall\e[0m.\n\n"
+
 	"\e[1mEXAMPLE\e[0m\n\n"
 	"\t./bin/app -m train -i data/camera_specs/ -r "
 	"data/initial_labels/sigmod_large_labelled_dataset.csv -f 1500 -l 0.001\n"
@@ -143,9 +154,12 @@ int parse_cmd_arguments(int		argc,
 						char ** relationsfile,
 						int *	max_features,
 						double *learning_rate,
+						int *	n_threads,
+						int *	batch_size,
+						int *	epochs,
 						int *	debug)
 {
-	int	  mflag = 0, iflag = 0, rflag = 0, fflag = 0, lflag = 0, dflag = 0;
+	int	  mflag = 0, iflag = 0, rflag = 0, fflag = 0, lflag = 0, dflag = 0, tflag = 0, bflag = 0, eflag = 0;
 	int	  option_index = 0, flag = 0, c, prev_index;
 	char *mode = NULL;
 
@@ -153,7 +167,7 @@ int parse_cmd_arguments(int		argc,
 	opterr = 0;
 
 	while (prev_index = optind,
-		   (c = getopt_long(argc, argv, ":m:i:r:f:l:d:h", long_options, &option_index)) != -1) {
+		   (c = getopt_long(argc, argv, ":m:i:r:f:l:d:t:b:e:h", long_options, &option_index)) != -1) {
 		if (optind == prev_index + 2 && *optarg == '-') {
 			c = ':';
 			--optind;
@@ -225,6 +239,22 @@ int parse_cmd_arguments(int		argc,
 				*learning_rate = SAFE_ATOD(optarg);
 				break;
 
+			case 'e':
+				check_multiple_option_redefinition(argv, 'l', eflag);
+				eflag = 1;
+				*epochs = SAFE_ATOI(optarg);
+				break;
+			case 'b':
+				check_multiple_option_redefinition(argv, 'b', bflag);
+				bflag = 1;
+				*batch_size = SAFE_ATOI(optarg);
+				break;
+
+			case 't':
+				check_multiple_option_redefinition(argv, 't', tflag);
+				tflag = 1;
+				*n_threads = SAFE_ATOI(optarg);
+				break;
 			case 'd':
 				check_multiple_option_redefinition(argv, 'd', dflag);
 				dflag = 1;
@@ -235,10 +265,7 @@ int parse_cmd_arguments(int		argc,
 				else if (strcmp(optarg, "All") == 0)
 					*debug = ALL_DBG;
 				else {
-					fprintf(
-						stderr,
-						"%s: Error: -d argument value must be one of Positive, Negative, All.\n",
-						argv[0]);
+					fprintf(stderr, "%s: Error: -d argument value must be one of Positive, Negative, All.\n", argv[0]);
 					fprintf(stderr, "Use ./bin/app -h or ./bin/app --help for more info.\n");
 					exit(EXIT_FAILURE);
 				}
@@ -252,7 +279,7 @@ int parse_cmd_arguments(int		argc,
 				}
 				dflag = 1;
 				printf("%s\n", usage);
-				break;
+				exit(EXIT_SUCCESS);
 
 			case '?':
 				fprintf(stderr, "Unknown option -%c.\n", optopt);
@@ -261,8 +288,7 @@ int parse_cmd_arguments(int		argc,
 
 			case ':':
 				if (flag == 1) {
-					fprintf(stderr, "%s: option '%s' requires an argument\n", argv[0],
-							argv[optind - 1]);
+					fprintf(stderr, "%s: option '%s' requires an argument\n", argv[0], argv[optind - 1]);
 				}
 				else {
 					fprintf(stderr, "%s: option '-%c' requires an argument.\n", argv[0], optopt);
@@ -286,6 +312,11 @@ int parse_cmd_arguments(int		argc,
 	check_mandatory_options(argv, 'm', mflag);
 	check_mandatory_options(argv, 'i', iflag);
 	check_mandatory_options(argv, 'r', rflag);
+	// check_mandatory_options(argv, 'h', hflag);
+	check_mandatory_options(argv, 'f', fflag);
+	check_mandatory_options(argv, 'l', lflag);
+	check_mandatory_options(argv, 't', tflag);
+	check_mandatory_options(argv, 'b', bflag);
 
 	if ((strcmp(mode, "train") == 0)) {
 		check_mandatory_options(argv, 'f', fflag);

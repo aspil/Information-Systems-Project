@@ -1,3 +1,4 @@
+#include "../../include/util/util.h"
 #include "../../include/word_embeddings/vectorizer.h"
 #include "../../include/word_embeddings/vectorizer_utils.h"
 #include "../../modules/hashtable/map.h"
@@ -7,12 +8,15 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <unistd.h>
 unsigned int hash_str(void *);
 
-void compute_tf_values(struct vectorizer *vectorizer)
+void compute_tf_values(Vectorizer *vectorizer)
 {
 	int document_words_count = 0;
+#ifdef SHOW_PROGRESS
+	int cnt = 0;
+#endif
 	for (void *iter = map_begin(vectorizer->word_frequencies); iter != NULL;
 		 iter = map_advance(vectorizer->word_frequencies)) {
 		struct vector *vec = (struct vector *) iter;
@@ -26,23 +30,45 @@ void compute_tf_values(struct vectorizer *vectorizer)
 			 * to avoid undefined behavior. */
 			elem->tfidf = (double) elem->frequency / document_words_count;
 		}
+
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, vectorizer->word_frequencies->total_items, 0, 100));
+		fflush(stdout);
+#endif
 	}
+#ifdef SHOW_PROGRESS
+	printf("%c[2K\rDone\n", 27);
+#endif
 }
 
-void compute_idf_values(struct vectorizer *vectorizer)
+void compute_idf_values(Vectorizer *vectorizer)
 {
-	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL;
-		 iter = map_advance(vectorizer->words_idf)) {
+#ifdef SHOW_PROGRESS
+	int cnt = 0;
+#endif
+	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL; iter = map_advance(vectorizer->words_idf)) {
 		struct idf_elem *elem = (struct idf_elem *) iter;
 		elem->idf = log2((double) vectorizer->documents_count / list_size(elem->files));
+
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, vectorizer->word_frequencies->total_items, 0, 100));
+		fflush(stdout);
+#endif
 	}
+#ifdef SHOW_PROGRESS
+	printf("%c[2K\rDone\n", 27);
+#endif
 }
 
-void compute_tfidf_values(struct vectorizer *vectorizer)
+void compute_tfidf_values(Vectorizer *vectorizer)
 {
 	struct idf_elem *idf_val;
 	int				 document_words_count;
 	double			 idf;
+#ifdef SHOW_PROGRESS
+	int cnt = 0;
+#endif
+
 	for (void *iter = map_begin(vectorizer->word_frequencies); iter != NULL;
 		 iter = map_advance(vectorizer->word_frequencies)) {
 		struct vector *vec = (struct vector *) iter;
@@ -51,15 +77,21 @@ void compute_tfidf_values(struct vectorizer *vectorizer)
 		for (int i = 0; i < document_words_count; ++i) {
 			struct vectorizer_elem *elem = (struct vectorizer_elem *) vector_get(vec, i);
 
-			if ((idf_val = (struct idf_elem *) map_find(vectorizer->words_idf, elem->word)) !=
-				NULL) {
+			if ((idf_val = (struct idf_elem *) map_find(vectorizer->words_idf, elem->word)) != NULL) {
 				idf = idf_val->idf;
 				elem->tfidf *= idf;					   /* Now elem has the tfidf value */
 				idf_val->average_tfidf += elem->tfidf; /* Add up to the average
 														  tfidf of this word */
 			}
 		}
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, vectorizer->word_frequencies->total_items, 0, 100));
+		fflush(stdout);
+#endif
 	}
+#ifdef SHOW_PROGRESS
+	printf("%c[2K\rDone\n", 27);
+#endif
 }
 
 void words_idf_add_value(struct hash_map *words_idf, char *file, char *word)
@@ -89,10 +121,9 @@ void words_idf_add_value(struct hash_map *words_idf, char *file, char *word)
 	}
 }
 
-void tfidf_reduce_features(struct vectorizer *vectorizer, int max_features)
+void tfidf_reduce_features(Vectorizer *vectorizer)
 {
-	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL;
-		 iter = map_advance(vectorizer->words_idf)) {
+	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL; iter = map_advance(vectorizer->words_idf)) {
 		struct idf_elem *elem = (struct idf_elem *) iter;
 		elem->average_tfidf /= vectorizer->documents_count;
 	}
@@ -100,16 +131,18 @@ void tfidf_reduce_features(struct vectorizer *vectorizer, int max_features)
 	struct heapq *heap = heapq_init(compare_features, feature_delete); /* free will be used only
 																		  on struct feature */
 
-	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL;
-		 iter = map_advance(vectorizer->words_idf)) {
-		struct feature *feat = feature_init(((struct idf_elem *) iter)->word,
-											((struct idf_elem *) iter)->average_tfidf);
+	for (void *iter = map_begin(vectorizer->words_idf); iter != NULL; iter = map_advance(vectorizer->words_idf)) {
+		struct feature *feat =
+			feature_init(((struct idf_elem *) iter)->word, ((struct idf_elem *) iter)->average_tfidf);
 		heapq_insert(heap, feat);
 	}
 
-	vectorizer->features = map_init(max_features, hash_str, compare_str, free, free);
+	vectorizer->features = map_init(vectorizer->max_features, hash_str, compare_str, free, free);
 
 	int column = 0;
+#ifdef SHOW_PROGRESS
+	printf("Selecting the best %d features...\n", vectorizer->max_features);
+#endif
 	for (int i = 0; i < vectorizer->max_features; ++i) {
 		struct feature *extracted = heapq_peek(heap);
 
@@ -125,7 +158,13 @@ void tfidf_reduce_features(struct vectorizer *vectorizer, int max_features)
 		heapq_extract(heap);
 		free(extracted);
 		column++;
+#ifdef SHOW_PROGRESS
+		printf("\r%.1f%%", rescale_lo_hi(i++, 0, vectorizer->max_features, 0, 100));
+		fflush(stdout);
+#endif
 	}
-
+#ifdef SHOW_PROGRESS
+	printf("%c[2K\rDone\n", 27);
+#endif
 	heapq_delete(heap);
 }
