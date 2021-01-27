@@ -87,39 +87,44 @@ int main(int argc, char *argv[])
 
 		// for (int i = 0; i < model->datasets->n_train; i++)
 		// 	printf("%s %d\n", model->datasets->train_samples[i], model->datasets->train_labels[i]);
-		train(model, n_threads);
+		// train(model, n_threads);
 		char **files = malloc(total_data_files * sizeof(char *));
 		int	   cnt = 0;
 		get_json_files(data_path, cnt, files);
-		// double threshold = 0.3, step_value = 0.05, p, *x;
+		double threshold = 0.1, step_value = 0.1, p, *x;
 
-		// while (threshold < 0.5) {
-		// 	struct vector *new_training_set = vector_init(2048, free);
-		// 	train(model, n_threads);
-		// 	for (int i = 0; i < total_data_files; i++) {
-		// 		for (int j = i + 1; j < total_data_files; j++) {	// Start from i+1 to avoid getting reverse relation
-
-		// 			x = vectorizer_get_vector(model->vect, files[i], files[j]);
-		// 			p = sigmoid(x, model->weights, model->n_weights);
-		// 			if (p < threshold) {
-		// 				char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
-		// 				// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(0));
-		// 				sprintf(pair, "%s,%s,%d", files[i], files[j], 0);
-		// 				vector_push_back(new_training_set, pair);
-		// 			}
-		// 			else if (p > 1 - threshold) {
-		// 				char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
-		// 				// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(1));
-		// 				sprintf(pair, "%s,%s,%d", files[i], files[j], 1);
-		// 				vector_push_back(new_training_set, pair);
-		// 			}
-		// 			free(x);
-		// 		}
-		// 	}
-		// 	resolve_transitivity_issues(model, new_training_set);
-		// 	vector_delete(new_training_set);
-		// 	threshold += step_value;
-		// }
+		while (threshold < 0.5) {
+			struct vector *new_training_set = vector_init(2048, free);
+			printf("Training\n");
+			train(model, n_threads);
+			printf("Finished training\n");
+			for (int i = 0; i < total_data_files; i++) {
+				printf("Comparing %s with everything\n", files[i]);
+				for (int j = i + 1; j < total_data_files; j++) {	// Start from i+1 to avoid getting reverse relation
+					// printf("%s, %s\n", files[i], files[j]);
+					x = vectorizer_get_vector(model->vect, files[i], files[j]);
+					p = sigmoid(x, model->weights, model->n_weights);
+					if (p < threshold) {
+						char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
+						// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(0));
+						sprintf(pair, "%s,%s,%d", files[i], files[j], 0);
+						vector_push_back(new_training_set, pair);
+					}
+					else if (p > 1 - threshold) {
+						char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
+						// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(1));
+						sprintf(pair, "%s,%s,%d", files[i], files[j], 1);
+						vector_push_back(new_training_set, pair);
+					}
+					free(x);
+					// printf("Done\n");
+				}
+			}
+			printf("Telos epanalhpshs\n");
+			// resolve_transitivity_issues(model, new_training_set);
+			vector_delete(new_training_set);
+			threshold += step_value;
+		}
 
 		free_data(sets);
 	}
