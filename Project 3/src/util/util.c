@@ -715,7 +715,7 @@ void print_cliques(int print_number)
 	}
 }
 
-void get_json_files(char *path, int file_cnt, char **files)
+int get_json_files(char *path, int file_cnt, char **files)
 {
 	struct dirent *direntPtr;
 	DIR *		   dir = opendir(path);
@@ -737,14 +737,11 @@ void get_json_files(char *path, int file_cnt, char **files)
 				strcat(subdir, direntPtr->d_name);
 
 				/* Recurse into the subdirectory */
-				get_json_files(subdir, file_cnt, files);
+				file_cnt = get_json_files(subdir, file_cnt, files);
 				free(subdir);
 			}
 			/* Check if the pointer is a regular json file */
 			else if (direntPtr->d_type == DT_REG && (strcmp(strrchr(direntPtr->d_name, '.'), ".json") == 0)) {
-				// files[file_cnt] = malloc(strlen(direntPtr->d_name) + 1);
-				// printf("%s, %s\n", path, direntPtr->d_name);
-				// // strcpy();
 				char *temp_path = calloc(strlen(path) + 1, sizeof(char));
 				strcpy(temp_path, path);
 
@@ -759,13 +756,11 @@ void get_json_files(char *path, int file_cnt, char **files)
 				files[file_cnt] = malloc(strlen(website) + 2 + strlen(direntPtr->d_name) + 1);
 				strcpy(files[file_cnt], website);
 				strcat(strcat(files[file_cnt], "//"), direntPtr->d_name);
-
 				strip_ext(files[file_cnt]);
-				printf("%s\n", files[file_cnt]);
-
 				file_cnt++;
 			}
 		}
 	}
 	closedir(dir);
+	return file_cnt;
 }

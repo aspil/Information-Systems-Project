@@ -345,7 +345,7 @@ void train(LogisticRegressor *model, int n_threads)
 		n_epochs_left--;
 	}
 
-	// printf("[Main]: End of epochs\n");
+	printf("[Main]: End of epochs\n");
 	finish = 1;
 	// printf("[Main]: Signal all to finish\n");
 	pthread_cond_signal(&sch->threads_done);

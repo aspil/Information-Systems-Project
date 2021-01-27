@@ -37,4 +37,4 @@ void negative_relations_file(char *name_of_file, struct clique *clique_ptr, stru
 
 void print_cliques(int print_number);
 
-void get_json_files(char *path, int file_cnt, char **files);
+int get_json_files(char *path, int file_cnt, char **files);
