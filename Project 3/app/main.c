@@ -45,14 +45,6 @@ int main(int argc, char *argv[])
 
 	int total_data_files = count_json_files(data_path);
 
-	stopwords = map_init(37, hash_str, compare_str, free, NULL);
-	get_stopwords("data/misc/stopwords.txt");
-	printf("Initializing the vectorizer\n");
-	Vectorizer *tfidf = vectorizer_init(total_data_files, 1);	 // 1 means tfidf instead of bow
-
-	printf("Transforming the data into tfidf word embedding\n");
-	vectorizer_fit_transform(tfidf, data_path, max_features);
-
 	if (mode == TRN_MD) {
 		/* Initialize the hash table */
 		struct hash_map *map = map_init(total_data_files, hash_str, compare_str, free, delete_clique);
@@ -72,103 +64,152 @@ int main(int argc, char *argv[])
 		if ((sets = train_test_split(0.6, 0.2, 1)) == NULL)
 			exit(EXIT_FAILURE);
 
-		if (sets) {}
+		if (batch_size > sets->n_train) {
+			printf("Batch size hyperparameter exceeds the train set's limits(%d).\nPlease provide a smaller batch size "
+				   "or press Ctrl+D to exit: ",
+				   sets->n_train);
+			if (scanf("%d", &batch_size) == EOF) {
+				printf("Exiting...\n");
+				exit(EXIT_SUCCESS);
+			}
+		}
+		stopwords = map_init(37, hash_str, compare_str, free, NULL);
+		get_stopwords("data/misc/stopwords.txt");
+		printf("Initializing the vectorizer\n");
+		Vectorizer *tfidf = vectorizer_init(total_data_files, 1);	 // 1 means tfidf instead of bow
 
+		printf("Transforming the data into tfidf word embedding\n");
+		vectorizer_fit_transform(tfidf, data_path, max_features);
 		printf("Initializing the logistic regression model\n");
 
 		LogisticRegressor *model = Logistic_Regression_Init(learning_rate, n_epochs, batch_size);
 		Logistic_Regression_fit(model, sets, tfidf);
 
-		printf("Training the model...\n");
-
-		for (int i = 0; i < model->datasets->n_train; i++)
-			printf("%s %d\n", model->datasets->train_samples[i], model->datasets->train_labels[i]);
-
-		char **files = malloc(n_files * sizeof(char *));
+		// for (int i = 0; i < model->datasets->n_train; i++)
+		// 	printf("%s %d\n", model->datasets->train_samples[i], model->datasets->train_labels[i]);
+		train(model, n_threads);
+		char **files = malloc(total_data_files * sizeof(char *));
 		int	   cnt = 0;
 		get_json_files(data_path, cnt, files);
-		double threshold = 0.3, step_value = 0.05, p, *x;
+		// double threshold = 0.3, step_value = 0.05, p, *x;
 
-		while (threshold < 0.5) {
-			struct vector *new_training_set = vector_init(2048, free);
-			train(model, n_threads);
-			for (int i = 0; i < total_data_files; i++) {
-				for (int j = i + 1; j < total_data_files; j++) {	// Start from i+1 to avoid getting reverse relation
+		// while (threshold < 0.5) {
+		// 	struct vector *new_training_set = vector_init(2048, free);
+		// 	train(model, n_threads);
+		// 	for (int i = 0; i < total_data_files; i++) {
+		// 		for (int j = i + 1; j < total_data_files; j++) {	// Start from i+1 to avoid getting reverse relation
 
-					x = vectorizer_get_vector(model->vect, files[i], files[j]);
-					p = sigmoid(x, model->weights, model->n_weights);
-					if (p < threshold) {
-						char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
-						// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(0));
-						sprintf(pair, "%s,%s,%d", files[i], files[j], 0);
-						vector_push_back(new_training_set, pair);
-					}
-					else if (p > 1 - threshold) {
-						char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
-						// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(1));
-						sprintf(pair, "%s,%s,%d", files[i], files[j], 1);
-						vector_push_back(new_training_set, pair);
-					}
-					free(x);
-				}
-			}
-			resolve_transitivity_issues(model, new_training_set);
-			vector_delete(new_training_set);
-			threshold += step_value;
-		}
+		// 			x = vectorizer_get_vector(model->vect, files[i], files[j]);
+		// 			p = sigmoid(x, model->weights, model->n_weights);
+		// 			if (p < threshold) {
+		// 				char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
+		// 				// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(0));
+		// 				sprintf(pair, "%s,%s,%d", files[i], files[j], 0);
+		// 				vector_push_back(new_training_set, pair);
+		// 			}
+		// 			else if (p > 1 - threshold) {
+		// 				char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
+		// 				// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(1));
+		// 				sprintf(pair, "%s,%s,%d", files[i], files[j], 1);
+		// 				vector_push_back(new_training_set, pair);
+		// 			}
+		// 			free(x);
+		// 		}
+		// 	}
+		// 	resolve_transitivity_issues(model, new_training_set);
+		// 	vector_delete(new_training_set);
+		// 	threshold += step_value;
+		// }
 
 		free_data(sets);
 	}
 	else if (mode == TST_MD) {
-		// LogisticRegressor *model = Logistic_Regression_Init();
+		FILE *	fp;
+		char *	line = NULL;
+		size_t	len = 0;
+		ssize_t read;
 
-		printf("Fetching the model's weights from data/model/weights.txt\n");
-		FILE *fp;
+		if ((fp = fopen("data/test/testing_data.csv", "r")) == NULL) {
+			perror("main: couldn't open data/test/testing_data.csv\n");
+			exit(EXIT_FAILURE);
+		}
+		if ((read = getline(&line, &len, fp)) < 0) {
+			perror("main: error in getline at data/test/testing_data.csv\n");
+			exit(EXIT_FAILURE);
+		}
+		int	   n_test_labels = atoi(line);
+		char **test_samples = malloc(n_test_labels * sizeof(char *));
+		int *  test_labels = malloc(n_test_labels * sizeof(int));
+
+		int i = 0;
+		while ((read = getline(&line, &len, fp)) != -1) {
+			get_line_without_end_line(line);	// take the relations
+			test_samples[i] = malloc(strlen(line) + 1);
+			strcpy(test_samples[i], line);
+			test_labels[i] = line[strlen(line) - 1] - '0';
+			i++;
+		}
+		fclose(fp);
+
+		if (batch_size > n_test_labels) {
+			printf("Batch size hyperparameter exceeds the train set's limits(%d).\nPlease provide a smaller batch size "
+				   "or press Ctrl+D to exit: ",
+				   n_test_labels);
+			if (scanf("%d", &batch_size) == EOF) {
+				printf("Exiting...\n");
+				exit(EXIT_SUCCESS);
+			}
+			printf("%d\n", batch_size);
+		}
+		stopwords = map_init(37, hash_str, compare_str, free, NULL);
+
+		get_stopwords("data/misc/stopwords.txt");
+		printf("Initializing the vectorizer\n");
+
 		if ((fp = fopen("data/model/weights.txt", "r")) == NULL) {
 			perror("main: couldn't open data/model/weights.txt:");
 			fprintf(stderr, "Please make sure that you have ran the app using training options\n");
 			exit(EXIT_FAILURE);
 		}
-		if ((fp = fopen("data/test/testing_data.csv", "r")) == NULL) {
-			perror("main: couldn't open data/test/testing_data.csv\n");
-			exit(EXIT_FAILURE);
-		}
-		char *	line = NULL;
-		size_t	len = 0;
-		ssize_t read;
 		if ((read = getline(&line, &len, fp)) < 0) {
-			perror("main: error in getline at data/test/testing_data.csv\n");
+			perror("main: error in getline\n");
 			exit(EXIT_FAILURE);
 		}
-		int n_test_labels = atoi(line);
-		if (batch_size < n_test_labels) {
-			// TODO scanf correction
-		}
-		int *  test_labels = malloc(n_test_labels * sizeof(int));
-		char **test_set = malloc(n_test_labels * sizeof(char *));
+		int			n_weights = atoi(line);
+		Vectorizer *tfidf = vectorizer_init(total_data_files, 1);	 // 1 means tfidf instead of bow
 
-		int i = 0;
+		printf("Transforming the data into tfidf word embedding\n");
+		max_features = (n_weights - 1) / 2;
+		vectorizer_fit_transform(tfidf, data_path, max_features);
+
+		printf("Initializing the logistic regression model\n");
+		LogisticRegressor *model = Logistic_Regression_Init(0, 0, batch_size);
+
+		Datasets *test_set = malloc(sizeof(struct Datasets));
+		memset(test_set, 0, sizeof(struct Datasets));
+		test_set->n_test = n_test_labels;
+		test_set->test_samples = test_samples;
+		test_set->test_labels = test_labels;
+
+		Logistic_Regression_fit(model, test_set, tfidf);
+		printf("Fetching the model's weights from data/model/weights.txt\n");
+		i = 0;
 		while ((read = getline(&line, &len, fp)) != -1) {
-			get_line_without_end_line(line);	// take the relations
-			test_set[i] = malloc(strlen(line) + 1);
-			strcpy(test_set[i], line);
-			test_labels[i] = line[strlen(line) - 1] - '0';
+			model->weights[i] = atof(line);	   // get the weights from training
 			i++;
 		}
 		fclose(fp);
-		/* TODO Φανουρη θα τα δω εγω αυτα εκτος αν σου κανει ορεξη, πρακτικα το θεμα ειναι οτι το batch size που δινουμε
-		 * αρχικα στο train ειναι μεγαλο για το τεστ και τρωει segmentation. Δυο λυσεις σκεφτηκα. Ή αλλαζουμε το batch
-		 * size σε κατι αλλο για το τεστ ή ακομα καλυτερα διαιρουμε το πληθος των test samples σε σχεδον ισα μερη οσα
-		 * και τα θρεντς και ετσι τα θρεντς εχουν ιδιο φορτο. Αν θες κοιτα το αλλα θα το κανω ουτως ή αλλως μετα το
-		 * μαθημα. Επισης νομιζω οτι αυτο παιζει σαν σεναριο και στο τρειν. */
-		// printf("Testing the model...\n");
-		// int *predictions = test(model, n_threads);
-
-		// printf("Accuracy: %f\n", accuracy_score(model->datasets->test_labels, predictions, model->datasets->n_test));
-		// printf("Precision: %f\n", precision_score(model->datasets->test_labels, predictions,
-		// model->datasets->n_test)); printf("Recall: %f\n", recall_score(model->datasets->test_labels, predictions,
-		// model->datasets->n_test)); printf("F1: %f\n", f1_score(model->datasets->test_labels, predictions,
-		// model->datasets->n_test));
+		printf("Testing the model...\n");
+		int *predictions = test(model, n_threads);
+		printf("Done testing\n");
+		// for (int i = 0; i < model->datasets->n_test; i++) {
+		// 	printf("%d ", predictions[i]);
+		// }
+		// 	printf("\n");
+		printf("Accuracy: %f\n", accuracy_score(model->datasets->test_labels, predictions, model->datasets->n_test));
+		printf("Precision: %f\n", precision_score(model->datasets->test_labels, predictions, model->datasets->n_test));
+		printf("Recall: %f\n", recall_score(model->datasets->test_labels, predictions, model->datasets->n_test));
+		printf("F1: %f\n", f1_score(model->datasets->test_labels, predictions, model->datasets->n_test));
 	}
 	else {
 		printf("Wut\n");

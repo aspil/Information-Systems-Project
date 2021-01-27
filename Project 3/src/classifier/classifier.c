@@ -64,9 +64,7 @@ double **create_batch(LogisticRegressor *model, int start, int end)
 	double **X = malloc((end - start + 1) * sizeof(double *));
 	int		 j = 0;
 	for (int n = start; n <= end; ++n) {
-		// printf("Giving %s\n", model->datasets->train_samples[n]);
 		parse_relation(model->datasets->train_samples[n], &document1, &document2);
-		// printf("Got %s %s\n", document1, document2);
 		X[j] = vectorizer_get_vector(model->vect, document1, document2);
 		free(document1);
 		free(document2);
@@ -177,74 +175,71 @@ void resolve_transitivity_issues(LogisticRegressor *model, struct vector *v)
 
 void predict_batch(void *args)
 {
-	// struct routine_args *r_args = (struct routine_args *) args;
+	struct routine_args *r_args = (struct routine_args *) args;
 
-	// LogisticRegressor *model = r_args->classifier;
+	LogisticRegressor *model = r_args->classifier;
 
-	// int start = r_args->start;
-	// int end = r_args->end;
+	int start = r_args->start;
+	int end = r_args->end;
 
-	// char *str = NULL, *document1 = NULL, *document2 = NULL, *temp = NULL;
+	char *document1 = NULL, *document2 = NULL;
 
-	// for (int i = start; i < end + 1; ++i) {
-	// 	str = model->datasets->test_samples[i];
+	for (int i = start; i < end + 1; ++i) {
+		parse_relation(model->datasets->test_samples[i], &document1, &document2);
 
-	// 	while (str[0] != ',')
-	// 		str = str + 1;
+		double *x = vectorizer_get_vector(model->vect, document1, document2);
 
-	// 	str[0] = '\0';
+		/* Get the predicted label using the probability result */
+		double sig = sigmoid(x, model->weights, model->n_weights);
+		predictions[i] = predicted_label(sig);
 
-	// 	document1 = malloc(strlen(model->datasets->test_samples[i]) + 1);
-	// 	strcpy(document1, model->datasets->test_samples[i]);	// we got the first product
-	// 	temp = str + 1;											// get the second product
-
-	// 	while (str[0] != ',')
-	// 		str = str + 1;
-
-	// 	str[0] = '\0';
-	// 	document2 = malloc(strlen(temp) + 1);
-	// 	strcpy(document2, temp);
-	// 	double *x = vectorizer_get_vector(model->vect, document1, document2);
-
-	// 	/* Get the predicted label using the probability result */
-	// 	predictions[i] = predicted_label(sigmoid(x, model->weights, model->n_weights));
-
-	// 	free(x);
-	// 	free(document1);
-	// 	free(document2);
-	// }
+		free(x);
+		free(document1);
+		free(document2);
+	}
 }
 
 int *test(LogisticRegressor *model, int n_threads)
 {
 	printf("[Main]: Initializing the scheduler\n");
-	JobScheduler *sch = initialize_scheduler(model, n_threads, TEST_THREAD, thread_test_work, NULL);
+	JobScheduler *sch = initialize_scheduler(model, n_threads, thread_test_work, NULL);
 
-	predictions = malloc(model->datasets->n_test * sizeof(double));
+	predictions = calloc(model->datasets->n_test, sizeof(double));
 	finish = 0;
 	int n_pred_batches;
+
 	if (model->batch_size > model->datasets->n_test) {
 		model->batch_size = model->datasets->n_test / n_threads;
 
 		model->batch_size += (model->datasets->n_test % n_threads) / n_threads;
 	}
-	printf("\nn_test = %d, batch_size = %d\n\n", model->datasets->n_test, model->batch_size);
-	if (model->datasets->n_test % model->batch_size == 0) {
-		n_pred_batches = model->datasets->n_test / model->batch_size;
-	}
-	else {
-		n_pred_batches = model->datasets->n_test / model->batch_size + 1;
-	}
+	// for (int i = 0; i < model->n_weights; i++)
+	// 	printf("%f\n", model->weights[i]);
+	// printf("\nn_test = %d, batch_size = %d\n\n", model->datasets->n_test, model->batch_size);
+
+	// if (model->datasets->n_test % model->batch_size == 0) {
+	// 	n_pred_batches = model->datasets->n_test / model->batch_size;
+	// }
+
+	// else {
+	// 	n_pred_batches = model->datasets->n_test / model->batch_size + 1;
+	// }
+
+	n_pred_batches = model->datasets->n_test / model->batch_size;
+	if (model->datasets->n_test % model->batch_size != 0)
+		n_pred_batches++;
+
+	threads_working = n_pred_batches;
 
 	int i, start = 0, end = model->batch_size - 1;
 	for (i = 0; i < n_pred_batches; i++) {
 		Job *new_job = create_job(predict_batch, model, start, end);
 
-		printf("[Main]: Submitting new job\n");
+		// printf("[Main]: Submitting new job\n");
 		submit_job(sch, new_job); /* Enqueue the job */
 
 		if (end == model->datasets->n_test - 1) { /* Stop if we reached the end of the training set */
-			printf("[Main]: i on break is %d\n", i);
+			// printf("[Main]: i on break is %d\n", i);
 			break;
 		}
 
@@ -257,9 +252,9 @@ int *test(LogisticRegressor *model, int n_threads)
 			end = model->datasets->n_test - 1;
 		}
 	}
-	printf("[Main]: Wait for the test threads to finish...\n");
+	// printf("[Main]: Wait for the test threads to finish...\n");
 	wait_test_threads(sch);
-	printf("[Main]: Signal all to finish\n");
+	// printf("[Main]: Signal all to finish\n");
 	finish = 1;
 	pthread_cond_signal(&sch->threads_done);
 	pthread_cond_broadcast(&sch->empty_queue);
@@ -269,6 +264,7 @@ int *test(LogisticRegressor *model, int n_threads)
 
 void train(LogisticRegressor *model, int n_threads)
 {
+	printf("Training the model...\n");
 	pthread_mutex_init(&gradient_mtx, NULL);
 
 	/* Initialize shared memory variables */
@@ -284,15 +280,14 @@ void train(LogisticRegressor *model, int n_threads)
 	threads_working = 1;
 	finish = 0;
 
-	printf("[Main]: Initializing the scheduler\n");
-	JobScheduler *sch = initialize_scheduler(model, n_threads, TRAIN_THREAD, thread_train_work, weights_calculator);
+	JobScheduler *sch = initialize_scheduler(model, n_threads, thread_train_work, weights_calculator);
 
 	/* Start the epochs */
-	printf("Train size: %d\n", model->datasets->n_train);
-	printf("[Main]: Starting the epochs\n");
+	// printf("Train size: %d\n", model->datasets->n_train);
+	// printf("[Main]: Starting the epochs\n");
 	for (int epoch = 0; epoch < model->epochs; epoch++) {
 		/* Create jobs until we cover all the dataset */
-		printf("\n[Main]: Epoch %d\n\n", epoch);
+		// printf("\n[Main]: Epoch %d\n\n", epoch);
 		int i, start = 0, end = model->batch_size - 1;
 		if (model->datasets->n_train % model->batch_size == 0) {
 			n_batches_left = model->datasets->n_train / model->batch_size;
@@ -315,7 +310,7 @@ void train(LogisticRegressor *model, int n_threads)
 				// printf("[Main]: %d iteration: Creating new job with start %d and end %d \n", i, start, end);
 				Job *new_job = create_job(mini_batch_gradient_descent, model, start, end);
 
-				printf("[Main]: Submitting new job\n");
+				// printf("[Main]: Submitting new job\n");
 				submit_job(sch, new_job); /* Enqueue the job */
 
 				if (end == model->datasets->n_train - 1) { /* Stop if we reached the end of the training set */
@@ -341,15 +336,16 @@ void train(LogisticRegressor *model, int n_threads)
 				n_batches_left -= i + 1;
 			// n_batches_left -= i;
 			// printf("[Main]: batches left: %d\n", n_batches_left);
-			printf("[Main]: Waiting for the scheduler session\n");
+			// printf("[Main]: Waiting for the scheduler session\n");
 			wait_scheduler_weights(sch);
-			printf("[Main]: Scheduler finished...\n");
+			// printf("[Main]: Scheduler finished...\n");
 		}
 		// printf("[Main]: Computing weights...\n");
 		// sleep(1);
 		n_epochs_left--;
 	}
-	printf("[Main]: End of epochs\n");
+
+	// printf("[Main]: End of epochs\n");
 	finish = 1;
 	// printf("[Main]: Signal all to finish\n");
 	pthread_cond_signal(&sch->threads_done);

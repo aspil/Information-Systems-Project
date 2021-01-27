@@ -23,7 +23,6 @@ int threads_finished;
 
 typedef struct Info {
 	int counter;
-	int type;
 
 	JobScheduler* scheduler;
 } Info;
@@ -46,7 +45,6 @@ Job* create_job(Routine routine, LogisticRegressor* model, int start, int end)
 
 JobScheduler* initialize_scheduler(LogisticRegressor* model,
 								   int				  execution_threads,
-								   int				  type,
 								   void* (*worker_function)(void*),
 								   void* (*weight_calculator_function)(void*) )
 {
@@ -63,26 +61,25 @@ JobScheduler* initialize_scheduler(LogisticRegressor* model,
 	pthread_cond_init(&(scheduler->threads_done), NULL);
 	pthread_cond_init(&(scheduler->compute_weights), NULL);
 	pthread_cond_init(&(scheduler->worker_sync), NULL);
-	pthread_cond_init(&(scheduler->new_thread_batch), NULL);
 
 	// pthread_attr_init(&scheduler->attr);
 	// pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	struct scheduler_args* sch_args = malloc(sizeof(struct scheduler_args));
 	sch_args->classifier = model;
 	sch_args->sch = scheduler;
-	if (weight_calculator_function != NULL)
+	if (weight_calculator_function != NULL) {
 		pthread_create(&(scheduler->scheduler_t), NULL, weights_calculator, (void*) sch_args);
-
+	}
+	else {
+		scheduler->scheduler_t = 0;
+	}
 	Info* struct_for_working_thread = NULL;
 	scheduler->tids = malloc(execution_threads * sizeof(pthread_t));
 	for (int i = 0; i < execution_threads; i++) {
 		struct_for_working_thread = malloc(sizeof(struct Info));
 		struct_for_working_thread->scheduler = scheduler;
 		struct_for_working_thread->counter = i;
-		struct_for_working_thread->type = type;
 		pthread_create(&scheduler->tids[i], NULL, worker_function, (void*) struct_for_working_thread);
-
-		// pthread_detach(scheduler->tids[i]);
 	}
 	threads_finished = 0;
 	return scheduler;
@@ -91,10 +88,9 @@ JobScheduler* initialize_scheduler(LogisticRegressor* model,
 void* thread_train_work(void* arg)
 {
 	Info* thread_info = (Info*) arg;
-	printf("[Thread %d]: Starting\n", thread_info->counter);
+	// printf("[Thread %d]: Starting\n", thread_info->counter);
 
 	JobScheduler* sch = thread_info->scheduler;
-	int			  thread_type = thread_info->type;
 	/* Loop as long as there are epochs left to iterate */
 	while ((n_epochs_left > 0)) {
 		/* Block thread if the job queue is empty */
@@ -125,7 +121,7 @@ void* thread_train_work(void* arg)
 
 			// printf("[Thread %d]: Executing job\n", thread_info->counter);
 			func_ptr(args_ptr); /* Call mini_batch_gradient_descent */
-			printf("[Thread %d]: Finished job\n", thread_info->counter);
+			// printf("[Thread %d]: Finished job\n", thread_info->counter);
 
 			free(job->args);
 			free(job);
@@ -152,15 +148,14 @@ void* thread_train_work(void* arg)
 void* thread_test_work(void* arg)
 {
 	Info* thread_info = (Info*) arg;
-	printf("[Thread %d]: Starting\n", thread_info->counter);
+	// printf("[Thread %d]: Starting\n", thread_info->counter);
 
 	JobScheduler* sch = thread_info->scheduler;
-	int			  thread_type = thread_info->type;
 	/* Loop as long as there are epochs left to iterate */
 	while (finish == 0) {	 // TODO find a safe condition
 		/* Block thread if the job queue is empty */
 		pthread_mutex_lock(&sch->empty_queue_lock);
-		printf("[Thread %d]: Waiting on empty queue\n", thread_info->counter);
+		// printf("[Thread %d]: Waiting on empty queue\n", thread_info->counter);
 		/* Thread will also block when the scheduler computes the weights, because
 		 * main won't enqueue more jobs before that happens */
 		while ((finish == 0) && (queue_size(sch->jobs) == 0)) {
@@ -173,7 +168,7 @@ void* thread_test_work(void* arg)
 
 		pthread_mutex_unlock(&sch->empty_queue_lock);
 
-		printf("[Thread %d]: Getting job from queue\n", thread_info->counter);
+		// printf("[Thread %d]: Getting job from queue\n", thread_info->counter);
 		Job* job = dequeue(sch->jobs);
 
 		void (*func_ptr)(void*);
@@ -184,43 +179,44 @@ void* thread_test_work(void* arg)
 			args_ptr = job->args;
 			((struct routine_args*) args_ptr)->thread_id = thread_info->counter;
 
-			printf("[Thread %d]: Executing job\n", thread_info->counter);
+			// printf("[Thread %d]: Executing job\n", thread_info->counter);
 			func_ptr(args_ptr); /* Call mini_batch_gradient_descent */
-			printf("[Thread %d]: Finished job\n", thread_info->counter);
+			// printf("[Thread %d]: Finished job\n", thread_info->counter);
 
 			free(job->args);
 			free(job);
 
 			pthread_mutex_lock(&sch->thread_cnt_lock);
 			threads_working--;
-			threads_finished++;
+			// printf("Threads working = %d\n", threads_working);
+			// threads_finished++;
 			/* The last thread in the current thread group must wake up the scheduler thread */
 			if (threads_working == 0) {
 				// threads_to_run = sch->threads_working;
-				printf("[Thread %d]: Signal the scheduler\n", thread_info->counter);
+				// printf("[Thread %d]: Signal the scheduler\n", thread_info->counter);
 				weightsComputed = 1;
 				pthread_cond_signal(&sch->compute_weights);
 			}
 			pthread_mutex_unlock(&sch->thread_cnt_lock);
 		}
 		else {
-			printf("[Thread %d]: Didn't get a job\n", thread_info->counter);
+			// printf("[Thread %d]: Didn't get a job\n", thread_info->counter);
 		}
 	}
-	printf("[Thread %d]: Exiting...\n", thread_info->counter);
+	// printf("[Thread %d]: Exiting...\n", thread_info->counter);
 	pthread_exit(NULL);
 }
 
 void* weights_calculator(void* arg)
 {
-	printf("[Scheduler]: Starting\n");
+	// printf("[Scheduler]: Starting\n");
 	struct scheduler_args* args = (struct scheduler_args*) arg;
 
 	JobScheduler*	   sch = args->sch;
 	LogisticRegressor* model = args->classifier;
 
 	while (n_epochs_left > 0) {
-		printf("[Scheduler]: Waiting for the current batch set to finish\n");
+		// printf("[Scheduler]: Waiting for the current batch set to finish\n");
 		pthread_mutex_lock(&sch->thread_cnt_lock);
 		/* Wait for the threads to compute their gradient */
 		while ((finish == 0) && (threads_working > 0)) {
@@ -229,21 +225,21 @@ void* weights_calculator(void* arg)
 		if (finish == 1)
 			break;
 		pthread_mutex_unlock(&sch->thread_cnt_lock);
-		printf("[Scheduler]: Calculating the weights\n");
+		// printf("[Scheduler]: Calculating the weights\n");
 
 		compute_weights(model, threads_finished);
-		printf("threads_finished = %d\n", threads_finished);
+		// printf("threads_finished = %d\n", threads_finished);
 		threads_finished = 0;
-		printf("[Scheduler]: Finished calculating the weights\n");
+		// printf("[Scheduler]: Finished calculating the weights\n");
 
 		weightsComputed = 1;
-		printf("[Scheduler]: Try to wake up the main\n");
+		// printf("[Scheduler]: Try to wake up the main\n");
 		pthread_cond_signal(&sch->compute_weights); /* Signal the main thread to create more jobs */
 		threads_working = 1; /* This value is temporary, to block the scheduler on next iteration. It will change from
 								main to the correct value */
 	}
 
-	printf("[Scheduler]: Exiting...\n");
+	// printf("[Scheduler]: Exiting...\n");
 	pthread_exit(NULL);
 }
 
@@ -264,14 +260,15 @@ void wait_scheduler_weights(JobScheduler* sch)
 	weightsComputed = 0;
 	pthread_mutex_unlock(&sch->weights_lock);
 }
+
 void wait_test_threads(JobScheduler* sch)
 {
 	int i = 0;
 	pthread_mutex_lock(&sch->weights_lock);
 	while (weightsComputed == 0) {
-		printf("[Main]: waiting for %d'th time\n", i);
+		// printf("[Main]: waiting for %d'th time\n", i);
 		pthread_cond_wait(&sch->compute_weights, &sch->weights_lock);
-		printf("[Main]: weightsComputed = %d\n", weightsComputed);
+		// printf("[Main]: weightsComputed = %d\n", weightsComputed);
 		i++;
 	}
 	// weightsComputed = 0;
@@ -281,19 +278,21 @@ void wait_test_threads(JobScheduler* sch)
 void wait_all_tasks_finish(JobScheduler* sch)
 {
 	int	  rc;
-	void* status;
+	void* status = NULL;
 	for (int i = 0; i < sch->execution_threads; i++) {
-		printf("[Main]: Waiting for thread %d to finish...\n", i);
-		if ((rc = pthread_join(sch->tids[i], NULL)) < 0) {
+		// printf("[Main]: Waiting for thread %d to finish...\n", i);
+		if ((rc = pthread_join(sch->tids[i], status)) < 0) {
 			printf("ERROR; return code from pthread_join() is %d\n", rc);
 			exit(EXIT_FAILURE);
 		}
 		// printf("Main: completed join with thread %ld having a status of %ld\n", i, (long) status);
 	}
-	printf("[Main]: Waiting for scheduler to finish...\n");
-	if ((rc = pthread_join(sch->scheduler_t, NULL)) < 0) {
-		printf("ERROR; return code from pthread_join() is %d\n", rc);
-		exit(EXIT_FAILURE);
+	if (sch->scheduler_t != 0) {
+		// printf("[Main]: Waiting for scheduler to finish...\n");
+		if ((rc = pthread_join(sch->scheduler_t, status)) < 0) {
+			printf("ERROR; return code from pthread_join() is %d\n", rc);
+			exit(EXIT_FAILURE);
+		}
 	}
 }
 
@@ -313,7 +312,6 @@ void destroy_scheduler(JobScheduler* sch)
 	pthread_cond_destroy(&sch->threads_done);
 	pthread_cond_destroy(&sch->compute_weights);
 	pthread_cond_destroy(&sch->worker_sync);
-	pthread_cond_destroy(&sch->new_thread_batch);
 
 	free(sch);
 }

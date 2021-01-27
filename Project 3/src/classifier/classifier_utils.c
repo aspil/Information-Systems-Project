@@ -13,9 +13,9 @@
 
 double *create_weights(int number_of_variables)
 {
-	double *array_of_weights = malloc(sizeof(double) * number_of_variables);
-	for (int i = 0; i < number_of_variables; ++i)
-		array_of_weights[i] = 0;
+	double *array_of_weights = calloc(number_of_variables, sizeof(double));
+	// for (int i = 0; i < number_of_variables; ++i)
+	// 	array_of_weights[i] = 0.0;
 
 	return array_of_weights;
 }
@@ -289,17 +289,21 @@ void parse_relation(char *relation, char **doc1, char **doc2)
 {
 	// char *		str = NULL, *temp = NULL;
 	const char *del = " ,\n";
+	char *		context = NULL;
 	char *		token = NULL;
 	char *		temp_relation = malloc(strlen(relation) + 1); /* Copy because the relation must remain untouched */
 	strcpy(temp_relation, relation);
-	if ((token = strtok(temp_relation, del)) == NULL) {
-		perror("Failed to tokenize string: ");
+	// printf("temp_relation = %s\n", temp_relation);
+	if ((token = strtok_r(temp_relation, del, &context)) == NULL) {
+		printf("token1 = %s\n", token);
+		// perror("Failed to tokenize string: ");
 		exit(EXIT_FAILURE);
 	}
 	*doc1 = malloc(strlen(token) + 1);
 	strcpy(*doc1, token);
-	if ((token = strtok(NULL, del)) == NULL) {
-		perror("Failed to tokenize string: ");
+	if ((token = strtok_r(NULL, del, &context)) == NULL) {
+		printf("token2 = %s\n", token);
+		// perror("Failed to tokenize string: ");
 		exit(EXIT_FAILURE);
 	}
 	*doc2 = malloc(strlen(token) + 1);

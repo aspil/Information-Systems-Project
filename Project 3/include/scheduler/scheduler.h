@@ -2,9 +2,6 @@
 
 #include <pthread.h>
 
-#define TRAIN_THREAD 0
-#define TEST_THREAD	 1
-
 typedef struct LogisticRegressor LogisticRegressor;
 
 typedef void (*Routine)(void*);
@@ -38,7 +35,6 @@ typedef struct JobScheduler {
 	pthread_cond_t threads_done;
 	pthread_cond_t compute_weights;
 	pthread_cond_t worker_sync;
-	pthread_cond_t new_thread_batch;
 
 } JobScheduler;
 
@@ -51,7 +47,6 @@ Job* create_job(Routine routine, LogisticRegressor* model, int start, int end);
 
 JobScheduler* initialize_scheduler(LogisticRegressor* model,
 								   int				  execution_threads,
-								   int				  type,
 								   void* (*worker_function)(void*),
 								   void* (*weight_calculator_function)(void*) );
 /* Call to add a job to the scheduler */
