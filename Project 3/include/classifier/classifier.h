@@ -4,13 +4,14 @@
 struct vector;
 
 typedef struct Vectorizer Vectorizer;
-
+struct hash_map;
 typedef struct Datasets Datasets;
 
 typedef struct LogisticRegressor {
 	double learning_rate;
 	int	   epochs;
 	int	   batch_size;
+	double predict_threshold;
 
 	Datasets *		   datasets;
 	double *		   weights;
@@ -18,7 +19,7 @@ typedef struct LogisticRegressor {
 	struct Vectorizer *vect;
 } LogisticRegressor;
 
-LogisticRegressor *Logistic_Regression_Init(double learning_rate, int epochs, int batch_size);
+LogisticRegressor *Logistic_Regression_Init(double learning_rate, int epochs, int batch_size, double predict_threshold);
 
 void Logistic_Regression_Delete(LogisticRegressor *model);
 
@@ -28,16 +29,12 @@ double **create_batch(LogisticRegressor *model, int start, int end);
 
 void train(LogisticRegressor *model, int n_threads);
 
+int *predict(LogisticRegressor *model, int n_threads);
+
 void mini_batch_gradient_descent(void *args);
 
 void compute_weights(LogisticRegressor *model, int threads);
 
 double *gradient(LogisticRegressor *model, double **batch, int *labels, int start, int end);
 
-int *test(LogisticRegressor *model, int n_threads);
-
-void resolve_transitivity_issues(LogisticRegressor *model, struct vector *v);
-
-int stochastic_gradient_descent(LogisticRegressor *, double *, int);
-
-// int *test(LogisticRegressor *classifier, char **labels, int n_labels);
+void resolve_transitivity_issues(struct vector *v, struct hash_map *map);

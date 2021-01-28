@@ -14,7 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef SHOW_PROGRESS
+#ifdef SHOWPROGRESS
 double rescale_lo_hi(int x, int old_min, int old_max, int new_min, int new_max)
 {
 	return (double) ((new_max - new_min) / (1.0 * (old_max - old_min))) * (x - old_max) + (double) new_max;

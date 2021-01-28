@@ -81,20 +81,28 @@ int cnt;
 
 void vectorizer_fit_transform(Vectorizer *vectorizer, char *path, int max_features)
 {
-#ifdef SHOW_PROGRESS
+#ifdef SHOWPROGRESS
 	printf("Finding the frequency of each word in each document...\n");
 	cnt = 0;
 #endif
 	vectorizer_construct(vectorizer, path);
-	printf("%c[2K\rDone\n", 27);
+	// printf("%c[2K\rDone\n", 27);
 	if (vectorizer->type == TFIDF) {
+#ifdef SHOWPROGRESS
 		printf("Calculating term frequency values...\n");
+#endif
 		compute_tf_values(vectorizer);
+#ifdef SHOWPROGRESS
 		printf("Calculating inverse-document frequency values...\n");
+#endif
 		compute_idf_values(vectorizer);
+#ifdef SHOWPROGRESS
 		printf("Calculating tfidf values...\n");
+#endif
 		compute_tfidf_values(vectorizer);
+#ifdef SHOWPROGRESS
 		printf("Reducing the total features down to %d...\n", max_features);
+#endif
 		vectorizer_reduce_features(vectorizer, max_features);
 	}
 	// int default_feature_reductions = (int)((double) 2/3 *
@@ -189,7 +197,7 @@ void vectorizer_construct(Vectorizer *vectorizer, char *path)
 				strcat(path_to_file, pDirent->d_name);
 
 				parse_json(vectorizer, path_to_file, pDirent->d_name, website);
-#ifdef SHOW_PROGRESS
+#ifdef SHOWPROGRESS
 				printf("\r%.1f%%", rescale_lo_hi(cnt++, 0, vectorizer->documents_count, 0, 100));
 				fflush(stdout);
 #endif

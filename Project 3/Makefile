@@ -1,6 +1,6 @@
 APP_EXEC ?= app
 TEST_EXEC ?= test
-PROFILING_FLAGS = -pg
+PROFILING_FLAGS =
 LIB = -pthread -lm
 override CFLAGS = -c -Wall -Wextra -g3 ${VERBOSE}
 CC = gcc $(PROFILING_FLAGS) -pthread $(PROFILING_FLAGS) 

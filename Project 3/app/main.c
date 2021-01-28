@@ -26,6 +26,9 @@
 
 struct hash_map *stopwords;
 
+double *min_weights;
+double	min_loss;
+
 void free_data(Datasets *s);
 
 int main(int argc, char *argv[])
@@ -40,12 +43,19 @@ int main(int argc, char *argv[])
 	int	   n_epochs = 1;
 	int	   batch_size = 512;
 
+	int stratify;
+
 	int mode = parse_cmd_arguments(argc, argv, &data_path, &relations_file, &max_features, &learning_rate, &n_threads,
-								   &batch_size, &n_epochs, &debug);
+								   &batch_size, &n_epochs, &debug, &stratify);
+
+	double predict_threshold = (stratify == 1) ? 0.5 : 0.49;
 
 	int total_data_files = count_json_files(data_path);
-
-	if (mode == TRN_MD) {
+	if (mode < 0) {
+		fprintf(stderr, "./bin/app: Error on -m option; invalid argument");
+		exit(EXIT_FAILURE);
+	}
+	else if (mode == TRN_MD || mode == ITR_MD) {
 		/* Initialize the hash table */
 		struct hash_map *map = map_init(total_data_files, hash_str, compare_str, free, delete_clique);
 
@@ -61,7 +71,8 @@ int main(int argc, char *argv[])
 
 		printf("Constructing the datasets...\n");
 		Datasets *sets;
-		if ((sets = train_test_split(0.6, 0.2, 1)) == NULL)
+
+		if ((sets = train_test_split(0.6, 0.2, stratify)) == NULL)
 			exit(EXIT_FAILURE);
 
 		if (batch_size > sets->n_train) {
@@ -82,48 +93,84 @@ int main(int argc, char *argv[])
 		vectorizer_fit_transform(tfidf, data_path, max_features);
 		printf("Initializing the logistic regression model\n");
 
-		LogisticRegressor *model = Logistic_Regression_Init(learning_rate, n_epochs, batch_size);
+		LogisticRegressor *model = Logistic_Regression_Init(learning_rate, n_epochs, batch_size, predict_threshold);
 		Logistic_Regression_fit(model, sets, tfidf);
 
-		// for (int i = 0; i < model->datasets->n_train; i++)
-		// 	printf("%s %d\n", model->datasets->train_samples[i], model->datasets->train_labels[i]);
-		// train(model, n_threads);
-		char **files = malloc(total_data_files * sizeof(char *));
-		int	   cnt = 0;
-		get_json_files(data_path, cnt, files);
-		double threshold = 0.1, step_value = 0.1, p, *x;
-
-		while (threshold < 0.5) {
-			struct vector *new_training_set = vector_init(2048, free);
-			printf("Training\n");
+		min_weights = calloc(model->n_weights, sizeof(double));
+		min_loss = 1000;
+		if (mode == TRN_MD) {
 			train(model, n_threads);
-			printf("Finished training\n");
-			for (int i = 0; i < total_data_files; i++) {
-				printf("Comparing %s with everything\n", files[i]);
-				for (int j = i + 1; j < total_data_files; j++) {	// Start from i+1 to avoid getting reverse relation
-					// printf("%s, %s\n", files[i], files[j]);
-					x = vectorizer_get_vector(model->vect, files[i], files[j]);
-					p = sigmoid(x, model->weights, model->n_weights);
-					if (p < threshold) {
-						char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
-						// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(0));
-						sprintf(pair, "%s,%s,%d", files[i], files[j], 0);
-						vector_push_back(new_training_set, pair);
-					}
-					else if (p > 1 - threshold) {
-						char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 2);
-						// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(1));
-						sprintf(pair, "%s,%s,%d", files[i], files[j], 1);
-						vector_push_back(new_training_set, pair);
-					}
-					free(x);
-					// printf("Done\n");
-				}
+			printf("Exiting...\n");
+		}
+		else {
+			char **files = malloc(total_data_files * sizeof(char *));
+			int	   cnt = 0;
+			get_json_files(data_path, cnt, files);
+			double threshold = 0.1, step_value = 0.1, p, *x;
+
+			struct hash_map *train_samples_map = map_init(model->datasets->n_train, hash_str, compare_str, NULL, NULL);
+			for (int i = 0; i < model->datasets->n_train; i++) {
+				map_insert(train_samples_map, model->datasets->train_samples[i], NULL);
 			}
-			printf("Telos epanalhpshs\n");
-			// resolve_transitivity_issues(model, new_training_set);
-			vector_delete(new_training_set);
-			threshold += step_value;
+			while (threshold < 0.5) {
+				struct vector *new_training_set = vector_init(2048, free);
+				printf("Training\n");
+
+				train(model, n_threads);
+
+				char *document1 = NULL;
+				char *document2 = NULL;
+				parse_relation(model->datasets->train_samples[1], &document1, &document2);
+
+				for (int i = 0; i < model->datasets->n_train; ++i) {
+					parse_relation(model->datasets->train_samples[i], &document1, &document2);
+					x = vectorizer_get_vector(model->vect, document1, document2);
+					p = sigmoid(x, model->weights, model->n_weights);
+				}
+
+				for (int i = 0; i < total_data_files; i++) {
+					// start=clock();
+					for (int j = i + 1; j < total_data_files;
+						 j++) {	   // Start from i+1 to avoid getting reverse relation
+						// first i have to check whether they belong in the same clique
+						// if they do from transitivity i dont need to examine them
+
+						char *temp = malloc(strlen(files[i]) + 2 + strlen(files[j]) + 1);
+						strcpy(temp, files[i]);
+						strcat(strcat(strcat(temp, ","), files[j]), ",");
+
+						if (map_find(train_samples_map, temp) == NULL) {
+							x = vectorizer_get_vector(model->vect, files[i], files[j]);
+
+							p = sigmoid(x, model->weights, model->n_weights);
+
+							if (p < threshold) {
+								char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 10);
+								// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(0));
+								sprintf(pair, "%s,%s,%d", files[i], files[j], 0);
+
+								vector_push_back(new_training_set, pair);
+							}
+							else if (p > 1 - threshold) {
+								char *pair = malloc(strlen(files[i]) + strlen(files[j]) + 10);
+
+								// strcat(strcat(strcpy(pair, files[i]), files[j]), itoa(1));
+								sprintf(pair, "%s,%s,%d", files[i], files[j], 1);
+
+								vector_push_back(new_training_set, pair);
+							}
+							free(x);
+						}
+					}
+					break;
+				}
+
+				resolve_transitivity_issues(new_training_set, map);
+
+				vector_delete(new_training_set);
+
+				threshold += step_value;
+			}
 		}
 
 		free_data(sets);
@@ -157,7 +204,8 @@ int main(int argc, char *argv[])
 		fclose(fp);
 
 		if (batch_size > n_test_labels) {
-			printf("Batch size hyperparameter exceeds the train set's limits(%d).\nPlease provide a smaller batch size "
+			printf("Batch size hyperparameter exceeds the train set's limits(%d).\nPlease provide a smaller batch "
+				   "size "
 				   "or press Ctrl+D to exit: ",
 				   n_test_labels);
 			if (scanf("%d", &batch_size) == EOF) {
@@ -188,7 +236,7 @@ int main(int argc, char *argv[])
 		vectorizer_fit_transform(tfidf, data_path, max_features);
 
 		printf("Initializing the logistic regression model\n");
-		LogisticRegressor *model = Logistic_Regression_Init(0, 0, batch_size);
+		LogisticRegressor *model = Logistic_Regression_Init(0, 0, batch_size, predict_threshold);
 
 		Datasets *test_set = malloc(sizeof(struct Datasets));
 		memset(test_set, 0, sizeof(struct Datasets));
@@ -205,7 +253,7 @@ int main(int argc, char *argv[])
 		}
 		fclose(fp);
 		printf("Testing the model...\n");
-		int *predictions = test(model, n_threads);
+		int *predictions = predict(model, n_threads);
 		printf("Done testing\n");
 		// for (int i = 0; i < model->datasets->n_test; i++) {
 		// 	printf("%d ", predictions[i]);

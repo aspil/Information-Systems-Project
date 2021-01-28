@@ -36,7 +36,7 @@ void construct_validation_set(Datasets *sets, char **positive_labels, char **neg
 
 double sigmoid(double *x, double *w, int n);
 
-int predicted_label(double result);
+int predicted_label(double result, double threshold);
 
 double loss(double sigmoid, double y);
 

@@ -13,7 +13,7 @@ void* thread_work(void* arg);
 extern double* g_gradients;
 extern double* weights;
 
-extern int n_batches_left;
+// extern int n_batches_left;
 extern int threads_working;
 extern int weightsComputed;
 extern int n_epochs_left;
@@ -101,11 +101,6 @@ void* thread_train_work(void* arg)
 		while ((finish == 0) && (queue_size(sch->jobs) == 0)) {
 			pthread_cond_wait(&sch->empty_queue, &sch->empty_queue_lock);
 		}
-		// if (finish == 1) {
-		// 	printf("[Thread %d]: mpikaaaaaaaaaaaaaaa\n", thread_info->counter);
-		// 	break;
-		// }
-
 		pthread_mutex_unlock(&sch->empty_queue_lock);
 
 		// printf("[Thread %d]: Getting job from queue\n", thread_info->counter);

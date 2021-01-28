@@ -6,6 +6,7 @@
 #include "../../include/util/text_preprocessing.h"
 #include "../../include/word_embeddings/vectorizer.h"
 #include "../../modules/dynamic_array/vector.h"
+#include "../../modules/hashtable/map.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -17,16 +18,16 @@
 #include <time.h>
 
 // extern double learning_rate;
-// double	previous_loss;
-// double *min_weights;
-// double	min_loss;
+pthread_mutex_t min_loss_mtx;
+double			previous_loss;
+extern double * min_weights;
+extern double	min_loss;
 
 pthread_mutex_t gradient_mtx;
+double *		g_gradients;
+double *		weights;
 
 int *predictions;
-
-double *weights;
-double *g_gradients;
 
 int n_batches_left;
 int threads_working;
@@ -34,12 +35,13 @@ int weightsComputed;
 int n_epochs_left;
 int finish;
 
-LogisticRegressor *Logistic_Regression_Init(double learning_rate, int epochs, int batch_size)
+LogisticRegressor *Logistic_Regression_Init(double learning_rate, int epochs, int batch_size, double predict_threshold)
 {
 	LogisticRegressor *model = malloc(sizeof(struct LogisticRegressor));
 	model->learning_rate = learning_rate;
 	model->epochs = epochs;
 	model->batch_size = batch_size;
+	model->predict_threshold = predict_threshold;
 	return model;
 }
 
@@ -112,8 +114,9 @@ double *gradient(LogisticRegressor *model, double **batch, int *labels, int star
 		// double *x = vectorizer_get_vector(model->vect, document1, document2);
 
 		sigmoid_result = sigmoid(batch[i], model->weights, model->n_weights); /* Get the sigmoid result */
-
-		// error += loss(sigmoid_result, labels[n]); /* Get the loss */
+		// printf("%f\n", sigmoid_result);
+		error += loss(sigmoid_result, labels[i]); /* Get the loss */
+		// printf("sig: %f, error: %f\n", sigmoid_result, error);
 
 		/* Calculate the gradient for the n'th sample and add it to the previous gradients of the
 		 * batch*/
@@ -126,6 +129,15 @@ double *gradient(LogisticRegressor *model, double **batch, int *labels, int star
 	for (int j = 0; j < model->n_weights; ++j) {
 		grad[j] /= (double) m;
 	}
+	error /= (double) (-1.0 * m);
+	pthread_mutex_lock(&min_loss_mtx);
+	if (error < min_loss) {
+		min_loss = error;
+		for (int i = 0; i < model->n_weights; ++i) {
+			min_weights[i] = model->weights[i];
+		}
+	}
+	pthread_mutex_unlock(&min_loss_mtx);
 	return grad;
 }
 
@@ -138,37 +150,114 @@ void compute_weights(LogisticRegressor *model, int threads)
 	}
 }
 
-void resolve_transitivity_issues(LogisticRegressor *model, struct vector *v)
+void resolve_transitivity_issues(struct vector *v, struct hash_map *map)
 {
-	char * new_sample = NULL;
-	int	   n, cnt = 0;
-	char **new_train_samples = malloc((model->datasets->n_train + vector_size(v)) * sizeof(char *));
-	int *  new_train_labels = malloc((model->datasets->n_train + vector_size(v)) * sizeof(int));
-	// for (int i = 0; i < model->datasets->n_train; i++) {
-	// 	new_train_samples[i] = model->datasets->train_samples[i];
-	// 	new_train_labels[i] = model->datasets->train_labels;
-	// }
+	struct vector_node *array = v->array;
 
-	memcpy(new_train_samples, model->datasets->train_samples, model->datasets->n_train * sizeof(char *));
+	char *document1, *document2;
 
-	memcpy(new_train_labels, model->datasets->train_labels, model->datasets->n_train * sizeof(int));
-	for (int i = 0; i < vector_size(v); i++) {
-		new_sample = vector_get(v, i);
-		char pair[strlen(new_sample)];
-		strncpy(pair, new_sample, strlen(new_sample) - 1);
+	int i;
 
-		for (n = 0; n < model->datasets->n_train; n++) {
-			if (strcmp(new_train_samples[n], pair) == 0)
-				break;
+	for (i = 0; i < v->size; ++i) {
+		// for each relation we are gonna find the clique and change it
+		// take the id
+
+		parse_relation((char *) array[i].value, &document1, &document2);
+
+		char *x = (char *) (array[i].value);
+		int	  relation = x[strlen(x) - 1] - '0';
+		//
+		struct clique **c1, **c2;
+
+		unsigned int pos = map->hash(document1) % map->size;
+		unsigned int pos_2 = map->hash(document2) % map->size;
+
+		struct map_node *search = map->array[pos];
+
+		struct map_node *search_2 = map->array[pos_2];
+
+		if (search == NULL || search_2 == NULL) {
+			printf("\n");
 		}
-		/* Simply append the new sample */
-		if (n == model->datasets->n_train) {
-			new_train_samples[cnt] = new_sample;
-			cnt++;
+		else {
+			while (search != NULL) {
+				if (strcmp((char *) search->key, document1) != 0)
+					search = search->next;
+
+				else {	  // you found the node u were looking for
+					c1 = (struct clique **) search->value;
+					break;
+				}
+			}
+
+			if (search == NULL) {
+				printf("\n");
+			}
+
+			else {
+				while (search_2 != NULL) {
+					if (strcmp((char *) search_2->key, document2) != 0)
+						search_2 = search_2->next; /* they are not the same , look the next */
+
+					else {
+						c2 = (struct clique **) search_2->value;
+						break;
+					}
+				}
+			}
+			if (search_2 == NULL) {
+				printf("\n");
+			}
 		}
-		else { /* Replace the sample once it was already in the training set, with the new label */
-			free(new_train_samples[n]);
-			new_train_samples[n] = new_sample;
+
+		// i will first check if they are already related with another relation
+		int flag = 0;
+		if (relation == 1) {
+			// go in the negative relations of c1 and search whether c2 exists
+			// if it exists throw the relation cause the relation that is there was with higher probability
+
+			struct negative_relation *iteration = (*c1)->first_negative;
+
+			while (iteration != NULL) {
+				if (iteration->neg_rel == *c2) {
+					// they are related with negative relation
+					flag = 1;
+					break;
+				}
+				iteration = iteration->next;
+			}
+
+			if ((flag == 0) && ((*c1) != (*c2))) {
+				// c1 must take c2 items
+
+				struct product *iteration_first = (*c1)->first_product;
+
+				struct product *iteration_second = (*c2)->first_product;
+
+				while (iteration_first != NULL) {
+					while (iteration_second != NULL) {
+						char *pair = malloc(strlen(iteration_first->website) + 2 * sizeof(int) +
+											strlen(iteration_second->website) + 15);
+
+						sprintf(pair, "%s//%d,%s//%d,%d", iteration_first->website, iteration_first->id,
+								iteration_second->website, iteration_second->id, 1);
+
+						// vector_push_back(v, pair);
+						iteration_second = iteration_second->next;
+					}
+
+					iteration_first = iteration_first->next;
+					iteration_second = (*c2)->first_product;
+				}
+
+				merge_cliques(c1, c2);
+			}
+		}
+		else {
+			if ((*c1) == (*c2)) {
+				flag = 1;
+			}
+			negative_relation_func(c1, c2);
 		}
 	}
 }
@@ -191,15 +280,16 @@ void predict_batch(void *args)
 
 		/* Get the predicted label using the probability result */
 		double sig = sigmoid(x, model->weights, model->n_weights);
-		predictions[i] = predicted_label(sig);
-
+		// printf("%f\n", sig);
+		predictions[i] = predicted_label(sig, model->predict_threshold);
+		// printf("%d\n", predictions[i]);
 		free(x);
 		free(document1);
 		free(document2);
 	}
 }
 
-int *test(LogisticRegressor *model, int n_threads)
+int *predict(LogisticRegressor *model, int n_threads)
 {
 	printf("[Main]: Initializing the scheduler\n");
 	JobScheduler *sch = initialize_scheduler(model, n_threads, thread_test_work, NULL);
@@ -266,7 +356,7 @@ void train(LogisticRegressor *model, int n_threads)
 {
 	printf("Training the model...\n");
 	pthread_mutex_init(&gradient_mtx, NULL);
-
+	pthread_mutex_init(&min_loss_mtx, NULL);
 	/* Initialize shared memory variables */
 	weights = malloc(sizeof(double) * model->n_weights);
 	g_gradients = malloc(sizeof(double) * model->n_weights);
@@ -285,6 +375,7 @@ void train(LogisticRegressor *model, int n_threads)
 	/* Start the epochs */
 	// printf("Train size: %d\n", model->datasets->n_train);
 	// printf("[Main]: Starting the epochs\n");
+	clock_t start = clock();
 	for (int epoch = 0; epoch < model->epochs; epoch++) {
 		/* Create jobs until we cover all the dataset */
 		// printf("\n[Main]: Epoch %d\n\n", epoch);
@@ -338,13 +429,15 @@ void train(LogisticRegressor *model, int n_threads)
 			// printf("[Main]: batches left: %d\n", n_batches_left);
 			// printf("[Main]: Waiting for the scheduler session\n");
 			wait_scheduler_weights(sch);
+
 			// printf("[Main]: Scheduler finished...\n");
 		}
 		// printf("[Main]: Computing weights...\n");
 		// sleep(1);
 		n_epochs_left--;
 	}
-
+	clock_t end = clock();
+	printf("Total training time: %f\n", (double) (end - start) / CLOCKS_PER_SEC);
 	printf("[Main]: End of epochs\n");
 	finish = 1;
 	// printf("[Main]: Signal all to finish\n");
@@ -352,6 +445,10 @@ void train(LogisticRegressor *model, int n_threads)
 	pthread_cond_broadcast(&sch->empty_queue);
 	destroy_scheduler(sch);
 
+	for (int i = 0; i < model->n_weights; ++i) {
+		// printf("min: %f , model: %f\n", min_weights[i], model->weights[i]);
+		model->weights[i] = min_weights[i];
+	}
 	printf("Saving the model's weights to a file\n");
 	FILE *fp;
 	if ((fp = fopen("data/model/weights.txt", "w")) == NULL) {

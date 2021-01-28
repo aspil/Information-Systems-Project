@@ -5,7 +5,7 @@
 
 struct hash_map;
 
-#ifdef SHOW_PROGRESS
+#ifdef SHOWPROGRESS
 double rescale_lo_hi(int x, int old_min, int old_max, int new_min, int new_max);
 #endif
 

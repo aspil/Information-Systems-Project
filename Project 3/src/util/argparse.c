@@ -72,8 +72,9 @@ static struct option long_options[] = {
 	{"learning_rate", required_argument, NULL, 'l'},
 
 	{"nthreads", required_argument, NULL, 't'},
-	{"batch_size", required_argument, NULL, 'b'},
+	{"batchsize", required_argument, NULL, 'b'},
 	{"epochs", required_argument, NULL, 'e'},
+	{"stratify", required_argument, NULL, 's'},
 	{"debug", required_argument, NULL, 'd'},
 	{"help", no_argument, NULL, 'h'},
 	{NULL, 0, NULL, 0},
@@ -82,14 +83,15 @@ static struct option long_options[] = {
 static const char *usage =
 	"\e[1mUSAGE\e[0m\n\t ./bin/app -m \e[4mMODE\e[0m -i \e[4mDATAPATH\e[0m "
 	"-r \e[4mRELATIONSFILE\e[0m -f \e[4mFEATURES\e[0m -l \e[4mRATE\e[0m "
-	"-t \e[4mNUMTHREADS\e[0m -b \e[4mBATCHSIZE\e[0m [-d \e[4mDEBUG\e[0m]\n\n"
+	"-t \e[4mNUMTHREADS\e[0m -b \e[4mBATCHSIZE\e[0m -e \e[4mEPOCHS\e[0m -s \e[4mSTRATIFY\e[0m [-d "
+	"\e[4mDEBUG\e[0m]\n\n"
 
 	"\e[1mDISCLAIMERS\e[0m\n"
 	"\n\tBefore running the program with \e[4mMODE\e[0m=\e[1mtest\e[0m, ensure that you have "
 	"already\n"
-	"\tran it with \e[4mMODE\e[0m=\e[1mtrain\e[0m. Otherwise the execution will fail.\n\n"
-
-	"\tIf \e[4mMODE\e[0m=\e[1mtest\e[0m|\e[1mvalidate\e[0m, only provide -m -i and -r options. The "
+	"\tran it with \e[4mMODE\e[0m=\e[1mtrain\e[0m. Otherwise the execution will fail.\n"
+	"\tAlso, make sure to use the same STRATIFY value for both train and test executions!\n\n"
+	"\tIf \e[4mMODE\e[0m=\e[1mtest\e[0m|\e[1mvalidate\e[0m, only provide -m, -i, -r, -t, -e and -s options. The "
 	"rest (valid ones) will be ignored.\n\n"
 
 	"\e[1mOPTIONS\e[0m\n"
@@ -113,8 +115,14 @@ static const char *usage =
 	"\n\t-t \e[4mNUMTHREADS\e[0m, --nthreads=\e[4mNUMTHREADS\e[0m\n\t\t"
 	"The number of threads to parallelize some procedures.\n"
 
-	"\n\t-t \e[4mBATCHSIZE\e[0m, --nthreads=\e[4mBATCHSIZE\e[0m\n\t\t"
+	"\n\t-b \e[4mBATCHSIZE\e[0m, --batchsize=\e[4mBATCHSIZE\e[0m\n\t\t"
 	"The size of the sample batches in gradient descent.\n"
+
+	"\n\t-e \e[4mEPOCHS\e[0m, --epochs=\e[4mEPOCHS\e[0m\n\t\t"
+	"The number of gradient descent iterations.\n"
+
+	"\n\t-s \e[4mSTRATIFY\e[0m, --stratify=\e[4mSTRATIFY\e[0m\n\t\t"
+	"If STRATIFY=no, use the whole dataset for training. Else, use same amount of each binary labels\n"
 
 	"\n\t-d \e[4mDEBUG\e[0m, --debug=\e[4mDEBUG\e[0m\n\t\t"
 	"Controls whether the program's output will contain results for the cliques while parsing the "
@@ -122,13 +130,15 @@ static const char *usage =
 	"\e[1mpositive\e[0m,\e[1mnegative\e[0m,\e[1mall\e[0m.\n\n"
 
 	"\e[1mEXAMPLE\e[0m\n\n"
-	"\t./bin/app -m train -i data/camera_specs/ -r "
-	"data/initial_labels/sigmod_large_labelled_dataset.csv -f 1500 -l 0.001\n"
+	"\ttime ./bin/app -m train -i data/ -r data/initial_labels/sigmod_large_labelled_dataset.csv -f 1500 -l 0.05 -t 50 "
+	"-b 512 -e 5 --stratify=yes\n"
 	"\n\t\tTrain the model with data from data/camera_specs/ directory, labels from "
 	"data/initial_labels/sigmod_large_labelled_dataset.csv,\n\t\treduce the dataset's features "
-	"down to 1500 and perform gradient descent with learning rate = 0.001.\n\n"
-	"\t./bin/app -m test -i data/camera_specs/ -r "
-	"data/initial_labels/sigmod_large_labelled_dataset.csv";
+	"down to 1500 and perform mini-batch gradient descent with learning rate = 0.001,\n\t\tbatch size = 512 and 50 "
+	"threads "
+	"for 5 iterations. Also stratify the training dataset.\n\n"
+	"\ttime ./bin/app -m test -i data/ -r data/initial_labels/sigmod_large_labelled_dataset.csv -t 1 -b 512 "
+	"--stratify=yes";
 
 void check_multiple_option_redefinition(char **argv, char opt, int optflag)
 {
@@ -157,9 +167,10 @@ int parse_cmd_arguments(int		argc,
 						int *	n_threads,
 						int *	batch_size,
 						int *	epochs,
+						int *	stratify,
 						int *	debug)
 {
-	int	  mflag = 0, iflag = 0, rflag = 0, fflag = 0, lflag = 0, dflag = 0, tflag = 0, bflag = 0, eflag = 0;
+	int	  mflag = 0, iflag = 0, rflag = 0, fflag = 0, lflag = 0, dflag = 0, tflag = 0, bflag = 0, eflag = 0, sflag = 0;
 	int	  option_index = 0, flag = 0, c, prev_index;
 	char *mode = NULL;
 
@@ -167,7 +178,7 @@ int parse_cmd_arguments(int		argc,
 	opterr = 0;
 
 	while (prev_index = optind,
-		   (c = getopt_long(argc, argv, ":m:i:r:f:l:d:t:b:e:h", long_options, &option_index)) != -1) {
+		   (c = getopt_long(argc, argv, ":m:i:r:f:l:d:t:b:e:s:h", long_options, &option_index)) != -1) {
 		if (optind == prev_index + 2 && *optarg == '-') {
 			c = ':';
 			--optind;
@@ -255,6 +266,21 @@ int parse_cmd_arguments(int		argc,
 				tflag = 1;
 				*n_threads = SAFE_ATOI(optarg);
 				break;
+			case 's':
+				check_multiple_option_redefinition(argv, 's', sflag);
+				sflag = 1;
+				if (strcmp(optarg, "yes") == 0) {
+					*stratify = 1;
+				}
+				else if (strcmp(optarg, "no") == 0) {
+					*stratify = 0;
+				}
+				else {
+					fprintf(stderr, "%s: Error: -s argument value must be 'yes' or 'no'.\n", argv[0]);
+					fprintf(stderr, "Use ./bin/app -h or ./bin/app --help for more info.\n");
+					exit(EXIT_FAILURE);
+				}
+				break;
 			case 'd':
 				check_multiple_option_redefinition(argv, 'd', dflag);
 				dflag = 1;
@@ -312,21 +338,23 @@ int parse_cmd_arguments(int		argc,
 	check_mandatory_options(argv, 'm', mflag);
 	check_mandatory_options(argv, 'i', iflag);
 	check_mandatory_options(argv, 'r', rflag);
-	// check_mandatory_options(argv, 'h', hflag);
-	check_mandatory_options(argv, 'f', fflag);
-	check_mandatory_options(argv, 'l', lflag);
-	check_mandatory_options(argv, 't', tflag);
-	check_mandatory_options(argv, 'b', bflag);
-
-	if ((strcmp(mode, "train") == 0)) {
+	check_mandatory_options(argv, 's', sflag);
+	if ((strcmp(mode, "train") == 0) || (strcmp(mode, "iterative") == 0)) {
 		check_mandatory_options(argv, 'f', fflag);
 		check_mandatory_options(argv, 'l', lflag);
+		check_mandatory_options(argv, 't', tflag);
+		check_mandatory_options(argv, 'b', bflag);
+		check_mandatory_options(argv, 'e', eflag);
+		if (strcmp(mode, "train") == 0)
+			return TRN_MD;
+		else
+			return ITR_MD;
 	}
 
-	if (strcmp(mode, "train") == 0)
-		return TRN_MD;
 	else if (strcmp(mode, "test") == 0)
 		return TST_MD;
-	else
+	else if (strcmp(mode, "validate") == 0)
 		return VAL_MD;
+	else
+		return -1;
 }
