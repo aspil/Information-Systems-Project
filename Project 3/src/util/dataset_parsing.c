@@ -20,7 +20,7 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 	struct clique **new_clique;
 	pDir = opendir(path);	 // anoigma tou path
 	if (pDir == NULL) {
-		printf("Cannot open directory '%s'\n", path);
+		// printf("Cannot open directory '%s'\n", path);
 		return -1;
 	}
 
@@ -39,8 +39,7 @@ int read_data_files(struct hash_map *ptr, int size, char *path)
 				read_data_files(ptr, size, subdir);
 				free(subdir);
 			}
-			else if (pDirent->d_type == DT_REG &&
-					 (strcmp(strrchr(pDirent->d_name, '.'), ".json") == 0)) {
+			else if (pDirent->d_type == DT_REG && (strcmp(strrchr(pDirent->d_name, '.'), ".json") == 0)) {
 				char *temp_path = calloc(strlen(path) + 1, sizeof(char));
 				strcpy(temp_path, path);
 
@@ -100,12 +99,10 @@ void read_relations(struct hash_map *map, char *path)
 
 	if ((read = getline(&line, &len, fp)) != -1) {
 		get_line_without_end_line(line);
-		if (strcmp(line, "left_spec_id,right_spec_id,label") ==
-			0)	  // it follows the coding i want
+		if (strcmp(line, "left_spec_id,right_spec_id,label") == 0)	  // it follows the coding i want
 		{
 			while ((read = getline(&line, &len, fp)) != -1) {
-				if (line[strlen(line) - 2] ==
-					'1')	// no reason to break into products the 0 values
+				if (line[strlen(line) - 2] == '1')	  // no reason to break into products the 0 values
 				{
 					counter++;
 					char *temp_2 = NULL;
@@ -189,12 +186,10 @@ void read_relations2(struct hash_map *map, char *path, struct all_info *rr_ptr)
 
 	if ((read = getline(&line, &len, fp)) != -1) {
 		get_line_without_end_line(line);
-		if (strcmp(line, "left_spec_id,right_spec_id,label") ==
-			0)	  // it follows the coding i want
+		if (strcmp(line, "left_spec_id,right_spec_id,label") == 0)	  // it follows the coding i want
 		{
 			while ((read = getline(&line, &len, fp)) != -1) {
-				if (line[strlen(line) - 2] ==
-					'1')	// no reason to break into products the 0 values
+				if (line[strlen(line) - 2] == '1')	  // no reason to break into products the 0 values
 				{}
 				else if (line[strlen(line) - 2] == '0') {
 					char *temp_2 = NULL;

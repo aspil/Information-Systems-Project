@@ -8,15 +8,15 @@
 #include "../modules/queue/queue.h"
 #include "acutest.h"
 
-void shuffle_array(int *array[], int size)
-{
-	for (int i = 0; i < size; i++) {
-		int	 new_pos = i + rand() / (RAND_MAX / (size - i) + 1);
-		int *temp = array[new_pos];
-		array[new_pos] = array[i];
-		array[i] = temp;
-	}
-}
+// void shuffle_array(int *array[], int size)
+// {
+// 	for (int i = 0; i < size; i++) {
+// 		int	 new_pos = i + rand() / (RAND_MAX / (size - i) + 1);
+// 		int *temp = array[new_pos];
+// 		array[new_pos] = array[i];
+// 		array[i] = temp;
+// 	}
+// }
 
 /* Create an integer */
 int *create_int(int value)
@@ -28,36 +28,47 @@ int *create_int(int value)
 
 void argument_parsing(void)
 {
-	int	  argc = 13;
-	char *argv[argc];
-	argv[0] = "./bin/app";
-	argv[1] = "-m";
-	argv[2] = "train";
-	argv[3] = "-i";
-	argv[4] = "tests/dataset";
-	argv[5] = "-r";
-	argv[6] = "tests/dataset/datasetY/datasetY.csv";
-	argv[7] = "-f";
-	argv[8] = "1000";
-	argv[9] = "-l";
-	argv[10] = "0.001";
-	argv[11] = "-d";
-	argv[12] = "All";
+	int	  argc = 19;
+	char *argv[] = {"./bin/app",
+					"-m",
+					"train",
+					"-i",
+					"tests/dataset",
+					"-r",
+					"tests/dataset/datasetY/datasetY.csv",
+					"-f",
+					"1500",
+					"-l",
+					"0.001",
+					"-t",
+					"12",
+					"-b",
+					"1000",
+					"-e",
+					"200",
+					"-s",
+					"yes"};
 
 	char * data_path = NULL;
 	char * relations_file = NULL;
 	int	   max_features;
 	double learning_rate;
-	int	   debug;
+	int	   debug = -1;
+	int	   n_threads, batch_size, epochs, stratify;
+	// int mode = parse_cmd_arguments(argc, argv, &data_path, &relations_file, &max_features, &learning_rate, &debug);
+	int mode = parse_cmd_arguments(argc, argv, &data_path, &relations_file, &max_features, &learning_rate, &n_threads,
+								   &batch_size, &epochs, &stratify, &debug);
 
-	int mode = parse_cmd_arguments(argc, argv, &data_path, &relations_file, &max_features,
-								   &learning_rate, &debug);
 	TEST_ASSERT(mode == 1);
 	TEST_ASSERT(strcmp(data_path, "tests/dataset") == 0);
 	TEST_ASSERT(strcmp(relations_file, "tests/dataset/datasetY/datasetY.csv") == 0);
-	TEST_ASSERT(max_features == 1000);
+	TEST_ASSERT(max_features == 1500);
 	TEST_ASSERT(learning_rate == 0.001);
-	TEST_ASSERT(debug == 0);
+	TEST_ASSERT(n_threads == 12);
+	TEST_ASSERT(batch_size == 1000);
+	TEST_ASSERT(epochs == 200);
+	TEST_ASSERT(stratify == 1);
+	TEST_ASSERT(debug == -1);
 
 	int size = count_json_files(data_path);
 	TEST_ASSERT(size == 9);
@@ -70,7 +81,6 @@ void read_data_files1(void)
 	char *argv = "/random/path";
 
 	int variable = read_data_files(map, 10, argv);
-
 	TEST_ASSERT(variable == -1);	//-1 for random paths
 
 	map_delete(map);
@@ -134,23 +144,6 @@ void passing_clique(void)
 	map_delete(map);
 }
 
-// void read_relations_1(void)
-// {
-// 	char *x = "./tests/dataset/example";
-
-// 	char *y = "./tests/dataset/datasetY/datasetY.csv";
-
-// 	struct hash_map *map = map_init(10, hash_str, NULL, free, delete_clique);
-
-// 	read_data_files(map, 10, x);
-
-// 	read_relations(map, y);
-
-// 	print_results(map);
-
-// 	map_delete(map);
-// }
-
 void negative_results(void)
 {
 	char *x = "./tests/dataset/example";
@@ -162,8 +155,6 @@ void negative_results(void)
 	read_data_files(map, 10, x);
 
 	read_relations(map, y);
-	printf("\n");
-	print_negative_results(map);
 
 	map_delete(map);
 }
@@ -251,12 +242,15 @@ void test_heap_remove(void)
 {
 	struct heapq *heap = heapq_init(compare_int, free);
 
-	int	  N = 10000;
+	int	  N = 10;
 	int **array = malloc(N * sizeof(*array));
-	for (int i = 0; i < N; i++)
+	for (int i = 0; i < N; i++) {
 		array[i] = create_int(i);
-	shuffle_array(array, N);
-
+	}
+	// shuffle_array(array, N, sizeof(int));
+	for (int i = 0; i < N; i++) {
+		array[i] = create_int(i);
+	}
 	for (int i = 0; i < N; i++)
 		heapq_insert(heap, array[i]);
 
@@ -455,7 +449,6 @@ TEST_LIST = {{"arguments parsing", argument_parsing},
 			 {"clique", passing_clique},
 			 //  {"example7", read_relations_1},
 			 {"negative cliques", negative_results},
-
 			 {"vector_init", test_vector_init},
 			 {"vector_push_back", test_vector_insert},
 			 {"vector_get_set", test_get_set},
@@ -475,4 +468,5 @@ TEST_LIST = {{"arguments parsing", argument_parsing},
 			 {"queue_init", test_queue_init},
 			 {"enqueue", test_enqueue},
 			 {"dequeue", test_queue_remove},
+
 			 {NULL, NULL}};
